@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "obshare-cli"
+version = "0.1.0"
+authors = [
+    { name="SuShuHeng", email="code.sushuheng@gmail.com" }
+]
+description = "CLI tool for uploading Obsidian Markdown documents to Feishu cloud documents"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business",
+    "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Utilities",
+]
+keywords = ["feishu", "markdown", "obsidian", "cli", "upload", "document"]
+dependencies = [
+    "click>=8.0.0",
+    "requests>=2.28.0",
+    "cryptography>=3.4.0",
+    "python-dotenv>=0.19.0",
+    "pyyaml>=6.0",
+    "pillow>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+obshare-cli = "obshare_cli.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/SuShuHeng/obshare-cli"
+"Bug Tracker" = "https://github.com/SuShuHeng/obshare-cli/issues"
+"Source Code" = "https://github.com/SuShuHeng/obshare-cli"
+Documentation = "https://github.com/SuShuHeng/obshare-cli#readme"
+
+[tool.setuptools.packages.find]
+where = ["src"]
