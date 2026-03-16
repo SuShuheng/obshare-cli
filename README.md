@@ -6,6 +6,8 @@ A command-line interface tool for uploading Obsidian Markdown documents to Feish
 [![Python](https://img.shields.io/pypi/pyversions/obshare-cli.svg)](https://pypi.org/project/obshare-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> [中文翻译点此](./README_Zh_CN.md)
+
 ## Installation
 
 ![pip-install-obshare-cli](./assets/obshare-cli.gif)
@@ -26,9 +28,9 @@ npm install -g puppeteer
 
 First, configure your Feishu credentials:
 
-You can get these token by the photo:
+You can get these token by the guidance:
 
-> ![feishu_config](./assets/feishu_config.png)
+> [feishu_config_guidance](./assets/feishu_config.png)
 
 ```bash
 # Set App ID
