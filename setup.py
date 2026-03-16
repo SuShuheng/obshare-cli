@@ -1,5 +1,5 @@
 """
-cli-anything-obshare - Upload Markdown documents to Feishu
+obshare-cli - Upload Obsidian Markdown documents to Feishu
 """
 
 from setuptools import setup, find_packages
@@ -8,16 +8,18 @@ with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="cli-anything-obshare",
+    name="obshare-cli",
     version="0.1.0",
     author="SuShuHeng",
-    description="CLI tool for uploading Markdown documents to Feishu cloud documents",
+    author_email="code.sushuheng@gmail.com",
+    description="CLI tool for uploading Obsidian Markdown documents to Feishu cloud documents",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/SuShuHeng/cli-anything-obshare",
+    url="https://github.com/SuShuHeng/obshare-cli",
     project_urls={
-        "Bug Tracker": "https://github.com/SuShuHeng/cli-anything-obshare/issues",
-        "Source Code": "https://github.com/SuShuHeng/cli-anything-obshare",
+        "Bug Tracker": "https://github.com/SuShuHeng/obshare-cli/issues",
+        "Source Code": "https://github.com/SuShuHeng/obshare-cli",
+        "Documentation": "https://github.com/SuShuHeng/obshare-cli#readme",
     },
     package_dir={"": "src"},
     packages=find_packages(where="src"),

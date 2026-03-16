@@ -8,6 +8,8 @@ A command-line interface tool for uploading Obsidian Markdown documents to Feish
 
 ## Installation
 
+![pip-install-obshare-cli](./assets/obshare-cli.gif)
+
 ```bash
 pip install obshare-cli
 ```
