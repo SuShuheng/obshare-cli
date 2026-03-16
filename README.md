@@ -26,6 +26,10 @@ npm install -g puppeteer
 
 First, configure your Feishu credentials:
 
+You can get these token by the photo:
+
+> ![feishu_config](./assets/feishu_config.png)
+
 ```bash
 # Set App ID
 obshare-cli config set-app-id "cli_xxx"
@@ -37,7 +41,7 @@ obshare-cli config set-app-secret "xxx"
 obshare-cli config set-user-id "xxx"
 
 # Set Folder Token
-obshare-cli config set-folder "fldcnxxx"
+obshare-cli config set-folder "xxxxxxx"
 
 # Show current configuration
 obshare-cli config show
@@ -110,6 +114,35 @@ obshare-cli delete <token>
 - Upload history tracking
 - JSON output mode for AI/CLI integration
 
+## Claude Code Skills
+
+This project includes Anthropic Claude Code Skills for AI-assisted usage. The skills are located in `.claude/skills/obshare-cli/`.
+
+### Available Skills
+
+| Skill | Command | Description |
+|-------|---------|-------------|
+| Main | `/obshare-cli` | Environment setup & CLI overview |
+| Config | `/config` | Manage Feishu configuration |
+| Upload | `/upload` | Upload documents to Feishu |
+| Permission | `/permission` | Manage document permissions |
+| List | `/list` | Query upload history |
+| Delete | `/delete` | Delete Feishu documents |
+
+### Usage with Claude Code
+
+```bash
+# In Claude Code, invoke skills with /
+/obshare-cli          # Get environment setup guide
+/config               # Configure Feishu credentials
+/upload note.md       # Upload a document
+/list                 # View upload history
+```
+
+### Installation for Claude Code
+
+The skills are automatically discovered when you open this project in Claude Code. No additional installation required.
+
 ## Requirements
 
 - Python 3.8+
@@ -140,8 +173,18 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 SuShuHeng (code.sushuheng@gmail.com)
 
+## Thanks
+
+- [Obsidian](https://obsidian.md) - The best AI-powered note-taking software
+
+- [Lark Open Platform](https://open.feishu.cn) - Provides technical platform support
+- [ObShare](https://github.com/xigua222/ObShare) - A significant source for this project, thank you.
+
 ## Links
+
+- [ObShare Config Doc](https://itlueqqx8t.feishu.cn/docx/XUJmdxbf7octOFx3Vt0c3KJ3nWe)
 
 - [GitHub Repository](https://github.com/SuShuHeng/obshare-cli)
 - [PyPI Package](https://pypi.org/project/obshare-cli/)
 - [Issue Tracker](https://github.com/SuShuHeng/obshare-cli/issues)
+
