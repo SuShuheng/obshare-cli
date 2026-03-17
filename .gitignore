@@ -75,3 +75,6 @@ Thumbs.db
 
 # Claude
 .claude/settings.local.json
+
+# codex plan
+docs/plans/
