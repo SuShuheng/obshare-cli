@@ -61,4 +61,4 @@ conda run -n obsd obshare-cli list history --json
 
 - Deletion is irreversible (document goes to Feishu trash)
 - Document token format: `doxcn` followed by alphanumeric characters
-- Requires valid configuration (use `/config` to set up)
+- Requires valid configuration (use `/obshare-cli:config` to set up)

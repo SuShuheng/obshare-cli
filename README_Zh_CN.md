@@ -114,34 +114,45 @@ obshare-cli delete <token>
 - 上传历史记录追踪
 - JSON 输出模式，便于 AI/CLI 集成
 
-## Claude Code Skills
+## Claude Code 插件
 
-本项目包含 Anthropic Claude Code Skills，支持 AI 辅助使用。Skills 位于 `.claude/skills/obshare-cli/` 目录。
+本项目包含 Claude Code 插件，支持 AI 辅助使用。插件提供环境设置、配置、上传笔记、管理权限和查看上传历史等技能。
 
-### 可用 Skills
+### 安装插件
 
-| Skill | 命令 | 描述 |
-|-------|---------|-------------|
-| 主技能 | `/obshare-cli` | 环境设置和 CLI 概述 |
-| 配置 | `/config` | 管理飞书配置 |
-| 上传 | `/upload` | 上传文档到飞书 |
-| 权限 | `/permission` | 管理文档权限 |
-| 列表 | `/list` | 查询上传历史 |
-| 删除 | `/delete` | 删除飞书文档 |
+```bash
+# 从 GitHub 安装
+/plugin install SuShuHeng/obshare-cli
+```
+
+### 可用技能
+
+| Skill | 调用方式 | 描述 |
+|-------|----------|------|
+| 主技能 | `/obshare-cli:obshare-cli` | 环境设置和 CLI 概述 |
+| 配置 | `/obshare-cli:config` | 管理飞书配置 |
+| 上传 | `/obshare-cli:upload` | 上传文档到飞书 |
+| 权限 | `/obshare-cli:permission` | 管理文档权限 |
+| 列表 | `/obshare-cli:list` | 查询上传历史 |
+| 删除 | `/obshare-cli:delete` | 删除飞书文档 |
 
 ### 在 Claude Code 中使用
 
 ```bash
-# 在 Claude Code 中，使用 / 调用 skills
-/obshare-cli          # 获取环境设置指南
-/config               # 配置飞书凭证
-/upload note.md       # 上传文档
-/list                 # 查看上传历史
+# 在 Claude Code 中，使用插件命名空间调用技能
+/obshare-cli:obshare-cli     # 获取环境设置指南
+/obshare-cli:config          # 配置飞书凭证
+/obshare-cli:upload note.md  # 上传文档
+/obshare-cli:list            # 查看上传历史
 ```
 
-### Claude Code 安装
+### 本地开发
 
-在 Claude Code 中打开此项目时，Skills 会自动被发现，无需额外安装。
+本地测试插件：
+
+```bash
+claude --plugin-dir /path/to/obshare-cli
+```
 
 ## 系统要求
 

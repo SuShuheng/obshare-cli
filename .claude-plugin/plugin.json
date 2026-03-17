@@ -1,0 +1,14 @@
+{
+  "name": "obshare-cli",
+  "version": "0.1.2",
+  "description": "Upload Obsidian Markdown documents to Feishu (Lark) cloud documents. Skills for environment setup, configuration, uploading notes, managing permissions, and viewing upload history.",
+  "author": {
+    "name": "SuShuHeng",
+    "email": "code.sushuheng@gmail.com"
+  },
+  "homepage": "https://github.com/SuShuHeng/obshare-cli",
+  "repository": "https://github.com/SuShuHeng/obshare-cli",
+  "license": "MIT",
+  "keywords": ["feishu", "lark", "obsidian", "markdown", "upload", "document"],
+  "category": "productivity"
+}

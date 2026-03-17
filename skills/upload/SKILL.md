@@ -114,7 +114,7 @@ conda run -n obsd obshare-cli upload document.md --json
 
 ## Notes
 
-- Configuration must be complete before uploading (use `/config` to set up)
+- Configuration must be complete before uploading (use `/obshare-cli:config` to set up)
 - Upload history is automatically saved to `~/.obshare/history.json`
 - Large files may take longer to process
 - Mermaid diagrams require Puppeteer/mermaid-cli installed via npm

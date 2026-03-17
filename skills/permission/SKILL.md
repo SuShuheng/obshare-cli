@@ -76,4 +76,4 @@ conda run -n obsd obshare-cli permission set doxcnAbcDefGhi --public --json
 
 - Document token can be found in upload output or history
 - Permissions are applied immediately
-- Use `/list` to view document tokens from upload history
+- Use `/obshare-cli:list` to view document tokens from upload history

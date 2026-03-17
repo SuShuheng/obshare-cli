@@ -116,34 +116,45 @@ obshare-cli delete <token>
 - Upload history tracking
 - JSON output mode for AI/CLI integration
 
-## Claude Code Skills
+## Claude Code Plugin
 
-This project includes Anthropic Claude Code Skills for AI-assisted usage. The skills are located in `.claude/skills/obshare-cli/`.
+This project includes a Claude Code Plugin for AI-assisted usage. The plugin provides skills for environment setup, configuration, uploading notes, managing permissions, and viewing upload history.
+
+### Install Plugin
+
+```bash
+# Install from GitHub
+/plugin install SuShuHeng/obshare-cli
+```
 
 ### Available Skills
 
-| Skill | Command | Description |
-|-------|---------|-------------|
-| Main | `/obshare-cli` | Environment setup & CLI overview |
-| Config | `/config` | Manage Feishu configuration |
-| Upload | `/upload` | Upload documents to Feishu |
-| Permission | `/permission` | Manage document permissions |
-| List | `/list` | Query upload history |
-| Delete | `/delete` | Delete Feishu documents |
+| Skill | Invocation | Description |
+|-------|------------|-------------|
+| Main | `/obshare-cli:obshare-cli` | Environment setup & CLI overview |
+| Config | `/obshare-cli:config` | Manage Feishu configuration |
+| Upload | `/obshare-cli:upload` | Upload documents to Feishu |
+| Permission | `/obshare-cli:permission` | Manage document permissions |
+| List | `/obshare-cli:list` | Query upload history |
+| Delete | `/obshare-cli:delete` | Delete Feishu documents |
 
 ### Usage with Claude Code
 
 ```bash
-# In Claude Code, invoke skills with /
-/obshare-cli          # Get environment setup guide
-/config               # Configure Feishu credentials
-/upload note.md       # Upload a document
-/list                 # View upload history
+# In Claude Code, invoke skills with plugin namespace
+/obshare-cli:obshare-cli     # Get environment setup guide
+/obshare-cli:config          # Configure Feishu credentials
+/obshare-cli:upload note.md  # Upload a document
+/obshare-cli:list            # View upload history
 ```
 
-### Installation for Claude Code
+### Local Development
 
-The skills are automatically discovered when you open this project in Claude Code. No additional installation required.
+To test the plugin locally:
+
+```bash
+claude --plugin-dir /path/to/obshare-cli
+```
 
 ## Requirements
 

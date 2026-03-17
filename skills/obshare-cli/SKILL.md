@@ -65,8 +65,8 @@ conda run -n obsd obshare-cli list history
 
 ## Related Skills
 
-- `/config` - Detailed configuration management
-- `/upload` - Document upload with options
-- `/permission` - Permission management
-- `/list` - Query upload history
-- `/delete` - Delete documents
+- `/obshare-cli:config` - Detailed configuration management
+- `/obshare-cli:upload` - Document upload with options
+- `/obshare-cli:permission` - Permission management
+- `/obshare-cli:list` - Query upload history
+- `/obshare-cli:delete` - Delete documents
