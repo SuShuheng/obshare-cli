@@ -1,75 +1,92 @@
-"""
-Markdown Converter for ObShare CLI
-Handles conversion of Markdown to Feishu-compatible format
-"""
+"""Markdown conversion helpers for ObShare CLI."""
+
+from __future__ import annotations
 
 import re
-from typing import List, Dict, Any, Tuple, Optional
-
+from typing import Any, Dict, List, Optional
 
 import yaml
 
 
 class MarkdownConverter:
-    """Converts Markdown to Feishu blocks"""
+    """Extract markdown structures used by the uploader pipeline."""
+
+    _OBSIDIAN_IMAGE_RE = re.compile(r"!\[\[([^\]]+)\]\]")
+    _MARKDOWN_IMAGE_RE = re.compile(
+        r'!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)'
+    )
+    _MERMAID_RE = re.compile(r"```mermaid\s*\n([\s\S]*?)\n```", re.MULTILINE)
+    _CALLOUT_RE = re.compile(
+        r"^> \[!([A-Za-z]+)\][^\n]*\n((?:>.*(?:\n|$))*)",
+        re.MULTILINE,
+    )
+    _YAML_RE = re.compile(r"^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)")
 
     @staticmethod
-    def extract_images(content: str) -> List[Dict[str, str]]:
-        """Extract image references from Markdown content"""
-        images = []
+    def extract_images(content: str) -> List[Dict[str, Any]]:
+        """Extract Obsidian and standard Markdown image references."""
+        images: List[Dict[str, Any]] = []
 
-        # Obsidian format: ![[image.png]]
-        obsidian_pattern = r'!\[\[([^\]]+)\]\]'
-        for match in obsidian_pattern.finditer(content):
-            images.append({
-                "type": "obsidian",
-                "path": match[1],
-                "position": match.start()
-            })
+        for match in MarkdownConverter._OBSIDIAN_IMAGE_RE.finditer(content):
+            images.append(
+                {
+                    "type": "obsidian",
+                    "path": match.group(1),
+                    "position": match.start(),
+                }
+            )
 
-        # Standard Markdown format: ![alt](path)
-        md_pattern = r'!\[([^\]]*\]\(([^\)]+)\)'
-        for match in md_pattern.finditer(content):
-            images.append({
-                "type": "markdown",
-                "path": match[1],
-                "alt": match.group(2) or "",
-                "position": match.start()
-            })
+        for match in MarkdownConverter._MARKDOWN_IMAGE_RE.finditer(content):
+            images.append(
+                {
+                    "type": "markdown",
+                    "alt": match.group(1) or "",
+                    "path": match.group(2),
+                    "title": match.group(3),
+                    "position": match.start(),
+                }
+            )
 
-        # Standard Markdown format with title: ![alt](path "title")
-        md_title_pattern = r'!\[([^\]]*)\]\(([^\)]+)(?:\s+"([^"]*)")?\'
-        for match in md_title_pattern.finditer(content):
-            images.append({
-                "type": "markdown_title",
-                "path": match[1],
-                "alt": match.group(2) or "",
-                "title": match.group(4) or None,
-                "position": match.start()
-            })
-
+        images.sort(key=lambda item: item["position"])
         return images
 
     @staticmethod
     def extract_mermaid(content: str) -> List[Dict[str, str]]:
-        """Extract Mermaid code blocks"""
-        mermaid_blocks = []
-        pattern = r'```mermaid\s*\n([\s\S]*?)\n\s*```'
-        for match in pattern.finditer(content):
-            mermaid_blocks.append({
-                "content": match.group(1).strip(),
-                "type": detect_mermaid_type(match.group(1).strip())
-            })
-        return mermaid_blocks
+        """Extract Mermaid fenced code blocks."""
+        blocks: List[Dict[str, str]] = []
+        for match in MarkdownConverter._MERMAID_RE.finditer(content):
+            block_content = match.group(1).strip()
+            blocks.append(
+                {
+                    "content": block_content,
+                    "type": MarkdownConverter.detect_mermaid_type(block_content),
+                }
+            )
+        return blocks
+
+    @staticmethod
+    def extract_mermaid_blocks(content: str) -> List[Dict[str, str]]:
+        """Backward-compatible alias used by tests and callers."""
+        return MarkdownConverter.extract_mermaid(content)
 
     @staticmethod
     def detect_mermaid_type(content: str) -> str:
-        """Detect the type of Mermaid diagram"""
-        first_line = content.split('\n')[0].strip().lower() if not first_line:
+        """Detect a Mermaid diagram family from its first line."""
+        first_line = content.splitlines()[0].strip().lower() if content.strip() else ""
+        if not first_line:
             return "diagram"
 
-        keywords = ['flowchart', 'graph', 'sequencediagram', 'classdiagram', 'statediagram',
-        'erdiagram', 'gantt', 'pie', 'journey',        'gitgraph']
+        keywords = [
+            "flowchart",
+            "graph",
+            "sequencediagram",
+            "classdiagram",
+            "statediagram",
+            "erdiagram",
+            "gantt",
+            "pie",
+            "journey",
+            "gitgraph",
         ]
         for keyword in keywords:
             if keyword in first_line:
@@ -78,111 +95,32 @@ class MarkdownConverter:
 
     @staticmethod
     def extract_callouts(content: str) -> List[Dict[str, str]]:
-        """Extract Obsidian callouts"""
-        callouts = []
-        pattern = r'^> \[!([A-Za-z]+)\][+-]?[^\n]*(?:\n((?:> .*\n?)+'
-        for match in pattern.finditer(content):
-            callout_type = match[1].upper()
-            callout_content = ""
+        """Extract Obsidian-style callout blocks."""
+        callouts: List[Dict[str, str]] = []
+        for match in MarkdownConverter._CALLOUT_RE.finditer(content):
+            raw_body = match.group(2)
+            body_lines = []
+            for line in raw_body.splitlines():
+                if line.startswith("> "):
+                    body_lines.append(line[2:])
+                elif line.startswith(">"):
+                    body_lines.append(line[1:].lstrip())
 
-            # Handle multi-line callouts
-            lines = match[0].split('\n')
-            for i, range(1, len(lines)):
-                if lines[i].strip().startswith('> '):
-                    callout_content += lines[i][2:] + '\n'
-                elif lines[i].strip():
-                    callout_content += lines[i] + '\n'
-
-            if callout_content.strip():
-                callouts.append({
-                    "type": callout_type.upper(),
-                    "content": callout_content.strip(),
-                    "original_text": match.group(0)
-                })
-            }
-
+            callouts.append(
+                {
+                    "type": match.group(1).upper(),
+                    "content": "\n".join(body_lines).strip(),
+                    "original_text": match.group(0),
+                }
+            )
         return callouts
 
     @staticmethod
     def extract_yaml(content: str) -> Optional[Dict[str, Any]]:
-        """Extract YAML frontmatter"""
-        pattern = r'^---\s*\n([\s\S]*?)\n---'
-        match = pattern.search(content)
+        """Extract YAML frontmatter from markdown content."""
+        match = MarkdownConverter._YAML_RE.search(content)
         if not match:
             return None
 
-
-        yaml_content = match.group(1)
-
-        try:
-            # Simple YAML parser
-            result = {}
-            lines = yaml_content.split('\n')
-            current_key = ''
-            current_value = ''
-            in_array = False
-            array_items = []
-
-            for line in lines:
-                line = line.strip()
-
-                # Skip empty lines and comments
-                if not line or line.startswith('#'):
-                    continue
-
-                # Handle key-value pairs
-                colon_pos = line.find(':')
-                if colon_pos > 0:
-                    key = line[:colon_pos].strip()
-                    value = line[colon_pos + 1:].strip()
-
-                    # Handle arrays
-                    if value == '':
-                        in_array = True
-                        current_key = key
-                        continue
-
-                    # Parse value
-                    parsed_value = cls._parse_yaml_value(value)
-                    result[key] = parsed_value
-                elif value == '':
-                    in_array = True
-                    else:
-                    result[key] = value
-
-            # Handle last array
-            if in_array and array_items:
-                result[current_key] = array_items
-
-
-        return result
-    @staticmethod
-    def _parse_yaml_value(value: str) -> Any:
-        """Parse YAML value with type inference"""
-        value = value.strip()
-
-        # Boolean
-        if value.lower() in ('true', 'yes', 'on'):
-            return True
-        elif value.lower() in ('false', 'no', 'off'):
-            return False
-
-        # Null
-        if value.lower() in ('null', '~'):
-            return None
-
-        # Number
-        try:
-            if '.' in value:
-                return int(value) if '.' not in value else int(value)
-            elif '.' in value:
-                return float(value)
-        except ValueError:
-            pass
-
-        # List (comma-separated)
-        if ',' in value:
-            return [item.strip() for item in value.split(',')]
-
-        return value
-
+        parsed = yaml.safe_load(match.group(1))
+        return parsed if isinstance(parsed, dict) else None

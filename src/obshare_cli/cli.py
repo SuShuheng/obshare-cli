@@ -12,6 +12,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
+from obshare_cli import __version__
 from obshare_cli.core.config import ConfigManager, ObShareConfig
 from obshare_cli.core.api_client import FeishuApiClient
 from obshare_cli.core.history import HistoryManager
@@ -19,7 +20,7 @@ from obshare_cli.core.history import HistoryManager
 
 # Global options context
 @click.group()
-@click.version_option(version='0.1.0', prog_name='obshare-cli')
+@click.version_option(version=__version__, prog_name='obshare-cli')
 @click.option('--json', 'json_output', is_flag=True, help='Output in JSON format')
 @click.option('--debug', is_flag=True, help='Enable debug logging')
 @click.pass_context

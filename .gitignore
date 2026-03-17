@@ -78,3 +78,9 @@ Thumbs.db
 
 # codex plan
 docs/plans/
+
+# superpower
+.worktrees/
+
+# test
+test-*

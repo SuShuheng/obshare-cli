@@ -53,7 +53,7 @@ class ConfigManager:
     def __init__(self, config_dir: Optional[Path] = None):
         """Initialize config manager"""
         if config_dir:
-            self.config_dir = config_dir
+            self.config_dir = Path(config_dir)
         else:
             # Use platform-specific config directory
             if os.name == 'nt':  # Windows
