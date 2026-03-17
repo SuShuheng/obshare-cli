@@ -121,8 +121,11 @@ obshare-cli delete <token>
 ### 安装插件
 
 ```bash
-# 从 GitHub 安装
-/plugin install SuShuHeng/obshare-cli
+# 第一步：添加 marketplace
+/plugin marketplace add SuShuHeng/obshare-cli
+
+# 第二步：安装插件
+/plugin install obshare-cli
 ```
 
 ### 可用技能

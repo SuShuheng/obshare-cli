@@ -123,8 +123,11 @@ This project includes a Claude Code Plugin for AI-assisted usage. The plugin pro
 ### Install Plugin
 
 ```bash
-# Install from GitHub
-/plugin install SuShuHeng/obshare-cli
+# Step 1: Add marketplace
+/plugin marketplace add SuShuHeng/obshare-cli
+
+# Step 2: Install plugin
+/plugin install obshare-cli
 ```
 
 ### Available Skills
