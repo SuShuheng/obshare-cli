@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "obshare-cli",
+  "description": "Claude Code plugin for uploading Obsidian Markdown to Feishu cloud documents",
+  "owner": {
+    "name": "SuShuHeng",
+    "email": "code.sushuheng@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "obshare-cli",
+      "description": "Upload Obsidian Markdown documents to Feishu (Lark) cloud documents",
+      "version": "0.1.2",
+      "author": {
+        "name": "SuShuHeng",
+        "email": "code.sushuheng@gmail.com"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/SuShuHeng/obshare-cli"
+    }
+  ]
+}
