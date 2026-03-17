@@ -49,12 +49,12 @@ def set_app_id(ctx, app_id):
         if ctx.obj['json']:
             click.echo(json.dumps({"success": True, "field": "app_id"}))
         else:
-            click.echo("✅ App ID has been set")
+            click.echo("[OK] App ID has been set")
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -69,12 +69,12 @@ def set_app_secret(ctx, app_secret):
         if ctx.obj['json']:
             click.echo(json.dumps({"success": True, "field": "app_secret"}))
         else:
-            click.echo("✅ App Secret has been set")
+            click.echo("[OK] App Secret has been set")
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -89,12 +89,12 @@ def set_user_id(ctx, user_id):
         if ctx.obj['json']:
             click.echo(json.dumps({"success": True, "field": "user_id"}))
         else:
-            click.echo("✅ User ID has been set")
+            click.echo("[OK] User ID has been set")
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -109,12 +109,12 @@ def set_folder(ctx, folder_token):
         if ctx.obj['json']:
             click.echo(json.dumps({"success": True, "field": "folder_token"}))
         else:
-            click.echo("✅ Folder Token has been set")
+            click.echo("[OK] Folder Token has been set")
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -135,19 +135,19 @@ def show_config(ctx):
                 "is_complete": config.is_complete()
             }, indent=2))
         else:
-            click.echo("\n📋 Current Configuration:")
+            click.echo("\n[CONFIG] Current Configuration:")
             click.echo("-" * 30)
             click.echo(f"  App ID: {config.app_id[:8] + '...' if config.app_id else 'Not set'}")
             click.echo(f"  App Secret: {'***' if config.app_secret else 'Not set'}")
             click.echo(f"  User ID: {config.user_id or 'Not set'}")
             click.echo(f"  Folder Token: {config.folder_token[:8] + '...' if config.folder_token else 'Not set'}")
-            click.echo(f"  Complete: {'✅' if config.is_complete() else '❌'}")
+            click.echo(f"  Complete: {'[OK]' if config.is_complete() else '[ERROR]'}")
             click.echo()
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -163,7 +163,7 @@ def test_connection(ctx):
             if ctx.obj['json']:
                 click.echo(json.dumps({"success": False, "error": "Configuration not complete"}))
             else:
-                click.echo("❌ Configuration not complete. Please set all required fields.")
+                click.echo("[ERROR] Configuration not complete. Please set all required fields.")
             sys.exit(1)
 
         client = FeishuApiClient(config.app_id, config.app_secret)
@@ -173,15 +173,15 @@ def test_connection(ctx):
             click.echo(json.dumps({"success": success}))
         else:
             if success:
-                click.echo("✅ Connection test successful!")
+                click.echo("[OK] Connection test successful!")
             else:
-                click.echo("❌ Connection test failed!")
+                click.echo("[ERROR] Connection test failed!")
                 sys.exit(1)
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -195,12 +195,12 @@ def clear_config(ctx):
         if ctx.obj['json']:
             click.echo(json.dumps({"success": True}))
         else:
-            click.echo("✅ Configuration cleared")
+            click.echo("[OK] Configuration cleared")
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -227,7 +227,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
                     }
                 }))
             else:
-                click.echo("❌ Configuration not complete. Please run:")
+                click.echo("[ERROR] Configuration not complete. Please run:")
                 click.echo("  obshare-cli config set-app-id <app_id>")
                 click.echo("  obshare-cli config set-app-secret <app_secret>")
                 click.echo("  obshare-cli config set-user-id <user_id>")
@@ -245,7 +245,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
         client = FeishuApiClient(config.app_id, config.app_secret)
 
         if not ctx.obj['json']:
-            click.echo(f"📤 Uploading: {title}.md")
+            click.echo(f"[UPLOAD] Uploading: {title}.md")
 
         # Upload document
         def progress_callback(msg):
@@ -302,7 +302,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
                 "uploadTime": upload_time
             }, indent=2))
         else:
-            click.echo("\n✅ Upload successful!\n")
+            click.echo("\n[OK] Upload successful!\n")
             click.echo(f"  Document: {title}")
             click.echo(f"  Token: {result.token}")
             click.echo(f"  URL: {result.url}")
@@ -322,7 +322,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
                 }
             }))
         else:
-            click.echo(f"❌ Upload failed: {e}")
+            click.echo(f"[ERROR] Upload failed: {e}")
         sys.exit(1)
 
 
@@ -350,7 +350,7 @@ def set_permission(ctx, token, public, allow_copy, allow_download):
             if ctx.obj['json']:
                 click.echo(json.dumps({"success": False, "error": "Configuration not complete"}))
             else:
-                click.echo("❌ Configuration not complete")
+                click.echo("[ERROR] Configuration not complete")
             sys.exit(1)
 
         client = FeishuApiClient(config.app_id, config.app_secret)
@@ -380,12 +380,12 @@ def set_permission(ctx, token, public, allow_copy, allow_download):
                 }
             }))
         else:
-            click.echo("✅ Permissions updated")
+            click.echo("[OK] Permissions updated")
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -412,11 +412,11 @@ def list_history(ctx):
                 click.echo("No upload history")
                 return
 
-            click.echo(f"\n📚 Upload History ({len(history)} documents)")
+            click.echo(f"\n[HISTORY] Upload History ({len(history)} documents)")
             click.echo("-" * 50)
 
             for item in history:
-                click.echo(f"\n  📄 {item.get('title', 'Unknown')}")
+                click.echo(f"\n  [DOC] {item.get('title', 'Unknown')}")
                 click.echo(f"     Token: {item.get('docToken', 'Unknown')}")
                 click.echo(f"     URL: {item.get('url', 'Unknown')}")
                 click.echo(f"     Time: {item.get('uploadTime', 'Unknown')}")
@@ -430,7 +430,7 @@ def list_history(ctx):
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 
@@ -448,7 +448,7 @@ def delete(ctx, token):
             if ctx.obj['json']:
                 click.echo(json.dumps({"success": False, "error": "Configuration not complete"}))
             else:
-                click.echo("❌ Configuration not complete")
+                click.echo("[ERROR] Configuration not complete")
             sys.exit(1)
 
         client = FeishuApiClient(config.app_id, config.app_secret)
@@ -460,12 +460,12 @@ def delete(ctx, token):
         if ctx.obj['json']:
             click.echo(json.dumps({"success": True, "token": token}))
         else:
-            click.echo(f"✅ Document {token} deleted")
+            click.echo(f"[OK] Document {token} deleted")
     except Exception as e:
         if ctx.obj['json']:
             click.echo(json.dumps({"success": False, "error": str(e)}))
         else:
-            click.echo(f"❌ Error: {e}")
+            click.echo(f"[ERROR] Error: {e}")
         sys.exit(1)
 
 

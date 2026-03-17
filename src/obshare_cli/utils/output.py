@@ -13,14 +13,14 @@ import click
 def format_success(message: str) -> None:
     """Format success message"""
     click.echo(click.get_context())
-    click.secho(f"✅ {message}")
+    click.secho(f"[OK] {message}")
     click.echo()
 
 
 def format_error(error_code: str, message: str, details: str = "") -> None:
     """Format error message"""
     click.echo(click.get_context())
-    click.secho(f"❌ Error: {error_code}", file=click.echo(f"  {message}", file=click.echo(f"  Details: {details}" file=click.echo()
+    click.secho(f"[ERROR] Error: {error_code}", file=click.echo(f"  {message}", file=click.echo(f"  Details: {details}" file=click.echo()
 
 
 def format_upload_result(result: Dict[str, Any], json_output: bool = False) -> Dict[str, Any]:
