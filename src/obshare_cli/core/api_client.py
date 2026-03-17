@@ -35,6 +35,30 @@ class FeishuApiClient:
     _last_request_time: float = 0
     REQUEST_INTERVAL: float = 0.35  # 350ms between requests
 
+    def _auth_headers(self) -> Dict[str, str]:
+        """Return standard JSON headers for authenticated requests."""
+        return {
+            "Authorization": f"Bearer {self.get_access_token()}",
+            "Content-Type": "application/json; charset=utf-8",
+        }
+
+    def _parse_json_response(self, response: requests.Response, action: str) -> Dict[str, Any]:
+        """Normalize Feishu API responses and surface useful errors."""
+        content_type = response.headers.get("Content-Type", "")
+        if "json" not in content_type.lower():
+            raise Exception(
+                f"{action} failed: HTTP {response.status_code}: {response.text[:200]}"
+            )
+
+        payload = response.json()
+        if response.status_code >= 400:
+            raise Exception(
+                f"{action} failed: HTTP {response.status_code}: {payload.get('msg', payload)}"
+            )
+        if payload.get("code") != 0:
+            raise Exception(f"{action} failed: {payload.get('msg', '')}")
+        return payload
+
     def get_access_token(self) -> str:
         """Get tenant access token"""
         import time
@@ -76,6 +100,97 @@ class FeishuApiClient:
         except Exception as e:
             raise Exception(f"Failed to get access token: {e}")
 
+    def create_import_task(self, file_name: str, file_token: str, folder_token: str) -> str:
+        """Create a Feishu import task that converts Markdown into a docx file."""
+        url = f"{self.base_url}/drive/v1/import_tasks"
+        request_body = {
+            "file_extension": "md",
+            "file_name": Path(file_name).stem,
+            "type": "docx",
+            "file_token": file_token,
+        }
+        if folder_token:
+            request_body["point"] = {
+                "mount_type": 1,
+                "mount_key": folder_token,
+            }
+
+        response = requests.post(
+            url,
+            headers=self._auth_headers(),
+            json=request_body,
+            timeout=30,
+        )
+        payload = self._parse_json_response(response, "import task creation")
+        ticket = payload.get("data", {}).get("ticket")
+        if not ticket:
+            raise Exception("Import task creation failed: missing ticket")
+        return ticket
+
+    def upload_temp_markdown_file(self, file_name: str, content: str, folder_token: str) -> str:
+        """Upload a temporary Markdown file into Feishu drive storage."""
+        file_bytes = content.encode("utf-8")
+        response = requests.post(
+            f"{self.base_url}/drive/v1/files/upload_all",
+            headers={"Authorization": f"Bearer {self.get_access_token()}"},
+            data={
+                "file_name": file_name,
+                "parent_type": "explorer",
+                "parent_node": folder_token,
+                "size": str(len(file_bytes)),
+            },
+            files={
+                "file": (
+                    Path(file_name).stem,
+                    file_bytes,
+                    "application/octet-stream",
+                )
+            },
+            timeout=60,
+        )
+        payload = self._parse_json_response(response, "file upload")
+        file_token = payload.get("data", {}).get("file_token")
+        if not file_token:
+            raise Exception("File upload failed: missing file_token")
+        return file_token
+
+    def poll_import_task(
+        self,
+        ticket: str,
+        on_progress: Optional[callable] = None,
+        poll_interval: float = 3.0,
+        max_retries: int = 5,
+    ) -> UploadResult:
+        """Poll an import task until the final docx document is ready."""
+        url = f"{self.base_url}/drive/v1/import_tasks/{ticket}"
+
+        for _ in range(max_retries):
+            if on_progress:
+                on_progress("Checking import task status...")
+            response = requests.get(
+                url,
+                headers=self._auth_headers(),
+                timeout=30,
+            )
+            payload = self._parse_json_response(response, "import task polling")
+            result = payload.get("data", {}).get("result", payload.get("data", {}))
+            job_status = result.get("job_status")
+
+            if job_status == 0:
+                return UploadResult(
+                    token=result["token"],
+                    url=result["url"],
+                    title=result.get("title") or "Untitled",
+                )
+            if job_status not in (1, 2):
+                error_message = result.get("job_error_msg", "")
+                raise Exception(
+                    f"Import task polling failed: {error_message or f'unknown job status {job_status}'}"
+                )
+            time.sleep(poll_interval)
+
+        raise Exception("Import task polling failed: timed out")
+
     def upload_document(
         self,
         file_name: str,
@@ -84,106 +199,27 @@ class FeishuApiClient:
         on_progress: Optional[callable] = None
     ) -> UploadResult:
         """Upload a Markdown document to Feishu"""
-
-        # Get access token
-        token = self.get_access_token()
-
-        # Create import task
-        url = f"{self.base_url}/docx/v1/documents/import_tasks"
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-
-        # Create document in folder first (required for import)
-        create_url = f"{self.base_url}/drive/v1/files/upload_all"
-
-        # Prepare file content as base64
-        file_content_base64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-
-        # Generate boundary
-        boundary = f"obshare-boundary-{int(time.time() * 1000)}"
-
-        # Build multipart body
-        body_parts = []
-
-        # file_name
-        body_parts.append(f"--{boundary}\r\n")
-        body_parts.append(f'Content-Disposition: form-data; name="file_name"\r\n\r\n')
-        body_parts.append(f"{file_name}\r\n")
-
-        # parent_type
-        body_parts.append(f"--{boundary}\r\n")
-        body_parts.append(f'Content-Disposition: form-data; name="parent_type"\r\n\r\n')
-        body_parts.append(f"explorer\r\n")
-
-        # parent_node
-        body_parts.append(f"--{boundary}\r\n")
-        body_parts.append(f'Content-Disposition: form-data; name="parent_node"\r\n\r\n')
-        body_parts.append(f"{folder_token}\r\n")
-
-        # size
-        file_bytes = content.encode('utf-8')
-        body_parts.append(f"--{boundary}\r\n")
-        body_parts.append(f'Content-Disposition: form-data; name="size"\r\n\r\n')
-        body_parts.append(f"{len(file_bytes)}\r\n")
-
-        # file content
-        body_parts.append(f"--{boundary}\r\n")
-        body_parts.append(f'Content-Disposition: form-data; name="file"; filename="{file_name}"\r\n')
-        body_parts.append(f"Content-Type: text/markdown\r\n\r\n")
-        body_parts.append(content)
-
-        body_parts.append(f"\r\n")
-
-        # End boundary
-        body_parts.append(f"--{boundary}--\r\n")
-
-        body = "".join(body_parts).encode('utf-8')
-
+        temp_file_token: Optional[str] = None
         try:
-            # Upload file
-            upload_response = requests.post(
-                create_url,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": f"multipart/form-data; boundary={boundary}"
-                },
-                data=body,
-                timeout=60
-            )
+            if on_progress:
+                on_progress("Uploading Markdown file to Feishu drive...")
+            temp_file_token = self.upload_temp_markdown_file(file_name, content, folder_token)
 
-            upload_result = upload_response.json()
-            if upload_result.get("code") != 0:
-                raise Exception(f"File upload failed: {upload_result.get('msg')}")
+            if on_progress:
+                on_progress("Creating import task...")
+            ticket = self.create_import_task(file_name, temp_file_token, folder_token)
 
-            file_token = upload_result["data"]["file_token"]
+            if on_progress:
+                on_progress("Waiting for Feishu import task...")
+            result = self.poll_import_task(ticket, on_progress=on_progress)
 
-            # Create import task
-            import_response = requests.post(
-                url,
-                headers=headers,
-                json={
-                    "file_extension": "md",
-                    "file_token": file_token,
-                    "type": "docx",
-                    "file_name": file_name,
-                    "parent_node": folder_token,
-                    "parent_type": "explorer"
-                }
-            )
+            if temp_file_token:
+                try:
+                    self.delete_file(temp_file_token, file_type="file")
+                except Exception:
+                    pass
 
-            if import_response.status_code != 200:
-                raise Exception(f"Import task creation failed: {import_response.text}")
-
-            ticket = import_response.json()["data"]["ticket"]
-
-            # Poll for import status
-            on_progress and on_progress("Creating import task...") if on_progress else None
-
-            return self._poll_import_status(token, ticket, on_progress)
-
+            return result
         except Exception as e:
             raise Exception(f"Upload failed: {e}")
 
@@ -246,103 +282,67 @@ class FeishuApiClient:
         user_id: Optional[str] = None
     ) -> bool:
         """Set document permissions"""
-        access_token = self.get_access_token()
-        url = f"{self.base_url}/drive/v1/permissions/{document_token}/members"
-
-        # Build permission settings
-        permissions = {
-            "is_public": is_public,
-            "allow_copy": allow_copy,
-            "allow_create_copy": allow_create_copy,
-        }
-
-        # If making public, set additional parameters
-        if is_public:
-            permissions["copy_entity"] = "anyone_can_view" if allow_copy else "only_full_access"
-            permissions["security_entity"] = "anyone_can_view" if allow_create_copy else "only_full_access"
-
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-
         try:
+            if user_id:
+                try:
+                    self.transfer_document_ownership(document_token, user_id)
+                except Exception:
+                    pass
+
+            url = f"{self.base_url}/drive/v2/permissions/{document_token}/public?type=docx"
+            payload = {"external_access_entity": "open"}
+            if is_public:
+                payload["link_share_entity"] = "anyone_readable"
+            if allow_copy:
+                payload["copy_entity"] = "anyone_can_view"
+            if allow_create_copy:
+                payload["security_entity"] = "anyone_can_view"
+
             response = requests.patch(
                 url,
-                headers=headers,
-                json={"permissions": permissions}
+                headers=self._auth_headers(),
+                json=payload,
+                timeout=30,
             )
-
-            result = response.json()
-
-            if result.get("code") != 0:
-                raise Exception(f"Permission setting failed: {result.get('msg')}")
-
-            # Transfer ownership if user_id provided
-            if user_id:
-                self._transfer_ownership(document_token, user_id)
-
+            self._parse_json_response(response, "permission update")
             return True
 
         except Exception as e:
             raise Exception(f"Failed to set permissions: {e}")
 
-    def _transfer_ownership(self, document_token: str, user_id: str) -> None:
-        """Transfer document ownership"""
-        access_token = self.get_access_token()
-        url = f"{self.base_url}/drive/v1/permissions/{document_token}/members"
+    def transfer_document_ownership(self, document_token: str, user_id: str) -> bool:
+        """Transfer ownership of a docx document to the configured user."""
+        response = requests.post(
+            (
+                f"{self.base_url}/drive/v1/permissions/{document_token}/members/"
+                "transfer_owner?need_notification=false&old_owner_perm=full_access"
+                "&remove_old_owner=false&stay_put=true&type=docx"
+            ),
+            headers=self._auth_headers(),
+            json={"member_id": user_id, "member_type": "userid"},
+            timeout=30,
+        )
+        self._parse_json_response(response, "ownership transfer")
+        return True
 
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-
+    def delete_file(self, document_token: str, file_type: str = "docx") -> bool:
+        """Delete a Feishu file using an explicit type discriminator."""
         try:
-            # First get current members
-            response = requests.get(url, headers=headers)
-            result = response.json()
-
-            if result.get("code") != 0:
-                # If no members, that's OK
-                pass
-            else:
-                # Transfer ownership to specified user
-                transfer_url = f"{url}/transfer_ownership"
-                transfer_response = requests.post(
-                    transfer_url,
-                    headers=headers,
-                    json={"owner_id": user_id}
-                )
-
-                if transfer_response.status_code != 200:
-                    pass  # Non-critical error
-
-        except Exception:
-            pass  # Non-critical error
-
-    def delete_document(self, document_token: str) -> bool:
-        """Delete a document"""
-        access_token = self.get_access_token()
-        url = f"{self.base_url}/drive/v1/files/{document_token}"
-
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-
-        try:
-            response = requests.delete(url, headers=headers)
-            result = response.json()
-
-            if result.get("code") != 0:
-                # 404 is OK (already deleted)
-                if "file not found" not in result.get("msg", ""):
-                    raise Exception(f"Delete failed: {result.get('msg')}")
-
+            response = requests.delete(
+                f"{self.base_url}/drive/v1/files/{document_token}?type={file_type}",
+                headers=self._auth_headers(),
+                timeout=30,
+            )
+            payload = self._parse_json_response(response, "file deletion")
+            if payload.get("code") != 0:
+                raise Exception(f"Delete failed: {payload.get('msg', '')}")
             return True
-
         except Exception as e:
             raise Exception(f"Failed to delete document: {e}")
+
+    def delete_document(self, document_token: str) -> bool:
+        """Delete a docx document."""
+        return self.delete_file(document_token, file_type="docx")
 
     def test_connection(self) -> bool:
         """Test API connection"""

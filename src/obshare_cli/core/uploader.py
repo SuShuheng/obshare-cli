@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -60,7 +61,7 @@ class DocumentUploader:
                     "title": path.stem,
                     "url": result.url,
                     "docToken": result.token,
-                    "uploadTime": "",
+                    "uploadTime": datetime.now().strftime("%Y-%m-%d %H:%M"),
                     "permissions": {
                         "isPublic": False,
                         "allowCopy": False,

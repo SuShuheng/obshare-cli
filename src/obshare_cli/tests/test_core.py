@@ -8,9 +8,10 @@ import os
 from pathlib import Path
 import json
 from datetime import datetime
+from unittest.mock import Mock
 
 from obshare_cli.core.config import ConfigManager
-from obshare_cli.core.api_client import FeishuApiClient
+from obshare_cli.core.api_client import FeishuApiClient, UploadResult
 from obshare_cli.core.uploader import DocumentUploader
 from obshare_cli.utils.crypto import CryptoUtils
 from obshare_cli.utils.output import format_upload_result, format_error
@@ -210,6 +211,36 @@ class TestHistory(unittest.TestCase):
         config.delete_history_item("token1")
         all_history = config.load_history()
         self.assertEqual(len(all_history), 0)
+
+    def test_document_uploader_records_final_docx_metadata(self):
+        """DocumentUploader should persist final docx token, URL, and upload time."""
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            app_id="test_app_id",
+            app_secret="test_app_secret",
+            user_id="test_user_id",
+            folder_token="test_folder_token",
+        )
+
+        temp_dir = Path(tempfile.mkdtemp())
+        markdown_file = temp_dir / "demo.md"
+        markdown_file.write_text("# Demo\n", encoding="utf-8")
+
+        feishu_client = Mock()
+        feishu_client.upload_document.return_value = UploadResult(
+            token="docx_123",
+            url="https://feishu.cn/docx/docx_123",
+            title="demo",
+        )
+
+        uploader = DocumentUploader(config, feishu_client)
+        result = uploader.upload_file(markdown_file)
+
+        history = config.load_history()
+        self.assertEqual(result.token, "docx_123")
+        self.assertEqual(history[0]["docToken"], "docx_123")
+        self.assertEqual(history[0]["url"], "https://feishu.cn/docx/docx_123")
+        self.assertTrue(history[0]["uploadTime"])
 
 
 class TestMermaidRenderer(unittest.TestCase):
