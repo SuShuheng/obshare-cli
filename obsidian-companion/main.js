@@ -463,7 +463,7 @@ class ObSharePluginSettingTab extends PluginSettingTab {
         this.renderDocumentsTab(panel);
         return;
       case TAB_ABOUT:
-        this.renderAboutTab(panel, this.plugin.settings.lastEnvironmentStatus || this.plugin.detectEnvironmentStatus());
+        this.renderAboutTab(panel, this.plugin.settings.lastEnvironmentStatus || this.plugin.createPendingEnvironmentStatus());
         return;
       default:
         this.renderPlaceholderTab(panel, this.plugin.t("common.unknown"), this.plugin.t("common.unknown"));
@@ -484,7 +484,7 @@ class ObSharePluginSettingTab extends PluginSettingTab {
         })
       );
 
-    const status = this.plugin.settings.lastEnvironmentStatus || this.plugin.detectEnvironmentStatus();
+    const status = this.plugin.settings.lastEnvironmentStatus || this.plugin.createPendingEnvironmentStatus();
     this.renderEnvironmentStatus(panel, status);
 
     new Setting(panel)
@@ -1020,10 +1020,9 @@ class ObSharePluginSettingTab extends PluginSettingTab {
 module.exports = class ObShareCliPlugin extends Plugin {
   async onload() {
     this.settings = this.normalizeSettings(Object.assign({}, DEFAULT_SETTINGS, await this.loadData()));
-
-    this.settings.lastEnvironmentStatus = this.detectEnvironmentStatus();
-
-    await this.loadUploadConfigDraft();
+    if (!this.settings.lastEnvironmentStatus) {
+      this.settings.lastEnvironmentStatus = this.createPendingEnvironmentStatus();
+    }
     await this.refreshHistory();
     await this.saveSettings();
 
@@ -1119,6 +1118,27 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
   getSharedHistoryPath() {
     return path.join(os.homedir(), ".obshare", "history.json");
+  }
+
+  createPendingEnvironmentStatus() {
+    const pending = {
+      ok: false,
+      primaryValue: this.t("common.unknown"),
+      secondaryText: "",
+      path: "",
+      prefix: "",
+      pythonPath: "",
+    };
+
+    return {
+      os: this.detectPlatform(),
+      conda: { ...pending },
+      condaEnv: { ...pending },
+      python: { ...pending },
+      pip: { ...pending },
+      obsidianCli: { ...pending },
+      obshareCli: { ...pending },
+    };
   }
 
   detectEnvironmentStatus() {
@@ -1464,16 +1484,16 @@ module.exports = class ObShareCliPlugin extends Plugin {
   }
 
   resolveCondaExecutable() {
-    const status = this.settings.lastEnvironmentStatus || this.detectEnvironmentStatus();
-    return this.settings.condaExecutable || status.conda.path || "conda";
+    const status = this.settings.lastEnvironmentStatus;
+    return this.settings.condaExecutable || (status && status.conda ? status.conda.path : "") || "conda";
   }
 
   resolveCondaPythonExecutable() {
-    const status = this.settings.lastEnvironmentStatus || this.detectEnvironmentStatus();
+    const status = this.settings.lastEnvironmentStatus;
     return (
       this.settings.condaPythonExecutable ||
-      status.condaEnv.pythonPath ||
-      this.defaultCondaPythonPath(status.condaEnv.prefix)
+      (status && status.condaEnv ? status.condaEnv.pythonPath : "") ||
+      this.defaultCondaPythonPath(status && status.condaEnv ? status.condaEnv.prefix : "")
     );
   }
 
