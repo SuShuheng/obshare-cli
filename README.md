@@ -12,17 +12,27 @@ A command-line interface tool for uploading Obsidian Markdown documents to Feish
 
 ![pip-install-obshare-cli](./assets/obshare-cli.gif)
 
+Recommended when using `obsidian-plugins`: install `obshare-cli` into a dedicated conda environment named `obsd`.
+
 ```bash
-pip install obshare-cli
+conda create -n obsd python -y
+conda run -n obsd python -m pip install --upgrade pip
+conda run -n obsd python -m pip install --upgrade obshare-cli
 ```
 
 ### Optional: Mermaid Support
 
-For Mermaid diagram rendering, install Puppeteer:
+`obshare-cli` supports two Mermaid rendering modes:
+
+1. Local Mermaid CLI rendering:
 
 ```bash
-npm install -g puppeteer
+npm install -g @mermaid-js/mermaid-cli
 ```
+
+2. Obsidian bridge rendering through the bundled companion plugin in `obsidian-plugins/`.
+
+Use the Obsidian plugin together with `obshare-cli`. The plugin does not replace the CLI upload flow; it provides visual configuration, document/config management, and Mermaid rendering inside a real Obsidian environment.
 
 ## Configuration
 
@@ -34,23 +44,62 @@ You can get these token by the guidance:
 
 ```bash
 # Set App ID
-obshare-cli config set-app-id "cli_xxx"
+conda run -n obsd obshare-cli config set-app-id "cli_xxx"
 
 # Set App Secret
-obshare-cli config set-app-secret "xxx"
+conda run -n obsd obshare-cli config set-app-secret "xxx"
 
 # Set User ID
-obshare-cli config set-user-id "xxx"
+conda run -n obsd obshare-cli config set-user-id "xxx"
 
 # Set Folder Token
-obshare-cli config set-folder "xxxxxxx"
+conda run -n obsd obshare-cli config set-folder "xxxxxxx"
 
 # Show current configuration
-obshare-cli config show
+conda run -n obsd obshare-cli config show
 
 # Test connection
-obshare-cli config test
+conda run -n obsd obshare-cli config test
 ```
+
+## Obsidian Companion Plugin
+
+`obsidian-plugins` is the Obsidian desktop companion plugin for `obshare-cli`. It is designed to be used together with `obshare-cli`, not as a standalone uploader.
+
+It provides:
+
+- Simple visual environment configuration
+- Shared document and configuration management
+- A Mermaid rendering bridge that lets `obshare-cli` trigger Obsidian to return Mermaid PNG images
+
+### Quick Start
+
+1. Create the recommended conda environment and install `obshare-cli`:
+
+```bash
+conda create -n obsd python -y
+conda run -n obsd python -m pip install --upgrade pip
+conda run -n obsd python -m pip install --upgrade obshare-cli
+```
+
+2. Copy `obsidian-plugins/` to your vault plugin directory: `.obsidian/plugins/obshare-cli/`
+3. Enable the plugin in Obsidian
+4. In the plugin settings, select the `conda (obsd)` runtime and set a shared bridge directory
+5. In `obshare-cli`, configure the same Obsidian bridge values:
+
+```bash
+conda run -n obsd obshare-cli config set-obsidian-cli obsidian
+conda run -n obsd obshare-cli config set-obsidian-bridge-dir /path/to/shared/bridge
+conda run -n obsd obshare-cli config set-obsidian-command-id obshare-cli:process-render-request
+```
+
+After that, continue using the normal CLI workflow:
+
+```bash
+conda run -n obsd obshare-cli upload document.md
+```
+
+When Mermaid blocks are detected, `obshare-cli` can call the Obsidian plugin bridge to render images and continue the upload flow.
 
 ## Usage
 
@@ -58,32 +107,32 @@ obshare-cli config test
 
 ```bash
 # Basic upload
-obshare-cli upload document.md
+conda run -n obsd obshare-cli upload document.md
 
 # Upload with JSON output (for AI agents)
-obshare-cli upload document.md --json
+conda run -n obsd obshare-cli upload document.md --json
 
 # Upload with permissions
-obshare-cli upload document.md --public --allow-copy --allow-download
+conda run -n obsd obshare-cli upload document.md --public --allow-copy --allow-download
 ```
 
 ### View Upload History
 
 ```bash
-obshare-cli list history
-obshare-cli list history --json
+conda run -n obsd obshare-cli list history
+conda run -n obsd obshare-cli list history --json
 ```
 
 ### Set Document Permissions
 
 ```bash
-obshare-cli permission set <token> --public --allow-copy --allow-download
+conda run -n obsd obshare-cli permission set <token> --public --allow-copy --allow-download
 ```
 
 ### Delete a Document
 
 ```bash
-obshare-cli delete <token>
+conda run -n obsd obshare-cli delete <token>
 ```
 
 ## JSON Output Example
@@ -111,6 +160,7 @@ obshare-cli delete <token>
 - Support for YAML frontmatter
 - Support for Obsidian Callouts
 - Support for Mermaid diagrams (converted to images)
+- Optional Obsidian companion plugin for visual configuration and Mermaid bridge rendering
 - Support for embedded images (Obsidian `![[image.png]]` and Markdown `![](image.png)`)
 - Configurable document permissions
 - Upload history tracking
@@ -203,4 +253,3 @@ SuShuHeng (code.sushuheng@gmail.com)
 - [GitHub Repository](https://github.com/SuShuHeng/obshare-cli)
 - [PyPI Package](https://pypi.org/project/obshare-cli/)
 - [Issue Tracker](https://github.com/SuShuHeng/obshare-cli/issues)
-

@@ -10,17 +10,27 @@
 
 ![pip-install-obshare-cli](./assets/obshare-cli.gif)
 
+如果需要配合 `obsidian-plugins` 使用，推荐将 `obshare-cli` 安装到名为 `obsd` 的独立 conda 环境中。
+
 ```bash
-pip install obshare-cli
+conda create -n obsd python -y
+conda run -n obsd python -m pip install --upgrade pip
+conda run -n obsd python -m pip install --upgrade obshare-cli
 ```
 
 ### 可选：Mermaid 图表支持
 
-如需渲染 Mermaid 图表，请安装 Puppeteer：
+`obshare-cli` 支持两种 Mermaid 渲染方式：
+
+1. 本地 Mermaid CLI 渲染：
 
 ```bash
-npm install -g puppeteer
+npm install -g @mermaid-js/mermaid-cli
 ```
+
+2. 通过 `obsidian-plugins/` 中附带的 Obsidian 配套插件进行桥接渲染。
+
+Obsidian 插件必须与 `obshare-cli` 配合使用。它不会替代 CLI 的上传流程，而是提供可视化环境配置、文档与配置管理，以及在真实 Obsidian 环境中的 Mermaid 渲染能力。
 
 ## 配置
 
@@ -32,23 +42,62 @@ npm install -g puppeteer
 
 ```bash
 # 设置 App ID
-obshare-cli config set-app-id "cli_xxx"
+conda run -n obsd obshare-cli config set-app-id "cli_xxx"
 
 # 设置 App Secret
-obshare-cli config set-app-secret "xxx"
+conda run -n obsd obshare-cli config set-app-secret "xxx"
 
 # 设置 User ID
-obshare-cli config set-user-id "xxx"
+conda run -n obsd obshare-cli config set-user-id "xxx"
 
 # 设置文件夹 Token
-obshare-cli config set-folder "xxxxxxx"
+conda run -n obsd obshare-cli config set-folder "xxxxxxx"
 
 # 查看当前配置
-obshare-cli config show
+conda run -n obsd obshare-cli config show
 
 # 测试连接
-obshare-cli config test
+conda run -n obsd obshare-cli config test
 ```
+
+## Obsidian 配套插件
+
+`obsidian-plugins` 是 `obshare-cli` 的 Obsidian 桌面配套插件，设计目标是与 `obshare-cli` 共同使用，而不是作为独立上传器单独运行。
+
+它提供：
+
+- 简单的可视化环境配置
+- 共享的文档与配置管理
+- Mermaid 渲染桥接能力，可让 `obshare-cli` 调用 Obsidian 返回 Mermaid PNG 图片
+
+### 快速开始
+
+1. 创建推荐的 conda 环境并安装 `obshare-cli`：
+
+```bash
+conda create -n obsd python -y
+conda run -n obsd python -m pip install --upgrade pip
+conda run -n obsd python -m pip install --upgrade obshare-cli
+```
+
+2. 将 `obsidian-plugins/` 复制到你的 Vault 插件目录：`.obsidian/plugins/obshare-cli/`
+3. 在 Obsidian 中启用该插件
+4. 在插件设置中选择 `conda (obsd)` 运行时，并设置共享 bridge 目录
+5. 在 `obshare-cli` 中配置相同的 Obsidian 桥接参数：
+
+```bash
+conda run -n obsd obshare-cli config set-obsidian-cli obsidian
+conda run -n obsd obshare-cli config set-obsidian-bridge-dir /path/to/shared/bridge
+conda run -n obsd obshare-cli config set-obsidian-command-id obshare-cli:process-render-request
+```
+
+完成后，继续使用正常的 CLI 上传流程：
+
+```bash
+conda run -n obsd obshare-cli upload document.md
+```
+
+当文档中检测到 Mermaid 代码块时，`obshare-cli` 就可以通过 Obsidian 插件桥接完成图片渲染，并继续后续上传流程。
 
 ## 使用方法
 
@@ -56,32 +105,32 @@ obshare-cli config test
 
 ```bash
 # 基本上传
-obshare-cli upload document.md
+conda run -n obsd obshare-cli upload document.md
 
 # 以 JSON 格式输出（适用于 AI 代理）
-obshare-cli upload document.md --json
+conda run -n obsd obshare-cli upload document.md --json
 
 # 上传并设置权限
-obshare-cli upload document.md --public --allow-copy --allow-download
+conda run -n obsd obshare-cli upload document.md --public --allow-copy --allow-download
 ```
 
 ### 查看上传历史
 
 ```bash
-obshare-cli list history
-obshare-cli list history --json
+conda run -n obsd obshare-cli list history
+conda run -n obsd obshare-cli list history --json
 ```
 
 ### 设置文档权限
 
 ```bash
-obshare-cli permission set <token> --public --allow-copy --allow-download
+conda run -n obsd obshare-cli permission set <token> --public --allow-copy --allow-download
 ```
 
 ### 删除文档
 
 ```bash
-obshare-cli delete <token>
+conda run -n obsd obshare-cli delete <token>
 ```
 
 ## JSON 输出示例
@@ -109,6 +158,7 @@ obshare-cli delete <token>
 - 支持 YAML frontmatter
 - 支持 Obsidian Callouts（标注块）
 - 支持 Mermaid 图表（转换为图片）
+- 可选的 Obsidian 配套插件，提供可视化配置和 Mermaid 桥接渲染
 - 支持嵌入图片（Obsidian `![[image.png]]` 和 Markdown `![](image.png)` 格式）
 - 可配置的文档权限
 - 上传历史记录追踪
