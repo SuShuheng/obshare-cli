@@ -170,6 +170,7 @@ const MESSAGES = {
     "status.obshareCliMissing": "未检测到 obshare-cli",
     "status.path": "路径",
     "status.command": "命令",
+    "status.pathOnlyDetection": "为避免循环启动 Obsidian，本插件仅执行路径解析，不直接调用 Obsidian CLI 进程。",
     "notice.copyUnavailable": "当前环境无法使用剪贴板。",
     "notice.copied": "已复制到剪贴板。",
     "notice.envRefreshed": "已刷新 obshare-cli 环境状态。",
@@ -346,6 +347,8 @@ const MESSAGES = {
     "status.obshareCliMissing": "obshare-cli not found",
     "status.path": "Path",
     "status.command": "Command",
+    "status.pathOnlyDetection":
+      "Path-only detection is used here to avoid recursively launching new Obsidian windows.",
     "notice.copyUnavailable": "Clipboard access is unavailable in this environment.",
     "notice.copied": "Copied to clipboard.",
     "notice.envRefreshed": "obshare-cli environment status refreshed.",
@@ -1289,28 +1292,24 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
   detectObsidianCli() {
     const candidates = process.platform === "win32" ? ["obsidian", "Obsidian"] : ["obsidian"];
-    for (const candidate of candidates) {
-      const versionResult = this.runCommand(candidate, ["--version"]);
-      if (versionResult.ok) {
-        return {
-          ok: true,
-          primaryValue: this.extractVersionLabel(versionResult.output) || this.t("common.available"),
-          secondaryText: this.formatSecondaryText({ pathValue: candidate, extraText: versionResult.output }),
-          path: candidate,
-        };
-      }
-
-      const helpResult = this.runCommand(candidate, ["--help"]);
-      if (helpResult.output) {
-        return this.parseObsidianCliStatus(candidate, helpResult.output, helpResult.ok);
-      }
+    const resolved = this.resolveCommandPath(candidates);
+    if (!resolved.ok) {
+      return {
+        ok: false,
+        primaryValue: this.t("status.missing"),
+        secondaryText: this.t("status.obsidianCliMissing"),
+        path: "",
+      };
     }
 
     return {
-      ok: false,
-      primaryValue: this.t("status.missing"),
-      secondaryText: this.t("status.obsidianCliMissing"),
-      path: "",
+      ok: true,
+      primaryValue: this.extractVersionLabel(resolved.path) || this.t("common.available"),
+      secondaryText: this.formatSecondaryText({
+        pathValue: resolved.path,
+        extraText: this.t("status.pathOnlyDetection"),
+      }),
+      path: resolved.path,
     };
   }
 
@@ -1363,6 +1362,33 @@ module.exports = class ObShareCliPlugin extends Plugin {
         output: error instanceof Error ? error.message : String(error),
       };
     }
+  }
+
+  resolveCommandPath(candidates) {
+    const resolver = process.platform === "win32" ? "where" : "which";
+    for (const candidate of candidates.filter(Boolean)) {
+      const result = this.runCommand(resolver, [candidate]);
+      if (!result.ok || !result.output) {
+        continue;
+      }
+      const resolvedPath = String(result.output)
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find(Boolean);
+      if (resolvedPath) {
+        return {
+          ok: true,
+          candidate,
+          path: resolvedPath,
+        };
+      }
+    }
+
+    return {
+      ok: false,
+      candidate: "",
+      path: "",
+    };
   }
 
   generateInstallCommand() {
@@ -1698,32 +1724,6 @@ module.exports = class ObShareCliPlugin extends Plugin {
       }
     }
     return parts.join("\n");
-  }
-
-  parseObsidianCliStatus(candidate, output, ok) {
-    const lines = String(output || "")
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    const version = this.extractVersionLabel(output);
-    const pathLine =
-      lines.find((line) => line.includes(".asar")) ||
-      lines.find((line) => /[A-Za-z]:\\|^\//.test(line)) ||
-      candidate;
-    const warningLines = lines.filter((line) => line !== pathLine && !line.includes(version.replace(/^v/, "")));
-    const hasBlockingWarning = warningLines.some((line) =>
-      /not enabled|out of date|download the latest installer/i.test(line)
-    );
-
-    return {
-      ok: ok && !hasBlockingWarning,
-      primaryValue: version || (ok ? this.t("common.available") : this.t("status.unavailable")),
-      secondaryText: this.formatSecondaryText({
-        pathValue: pathLine,
-        extraText: warningLines.join("\n"),
-      }),
-      path: candidate,
-    };
   }
 
   async processNextRequest() {

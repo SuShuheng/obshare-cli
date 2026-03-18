@@ -68,6 +68,7 @@ It also persists:
 - shows detected CLI version
 - links to the repository
 - lets the user switch between `zh_cn` and `en_us`
+- refreshes the plugin shell after language switching
 - provides plugin update guidance
 - generates and can execute the CLI upgrade command for the bound runtime
 

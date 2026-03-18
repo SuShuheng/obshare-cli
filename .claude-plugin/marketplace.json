@@ -10,7 +10,7 @@
     {
       "name": "obshare-cli",
       "description": "Upload Obsidian Markdown documents to Feishu (Lark) cloud documents",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "author": {
         "name": "SuShuHeng",
         "email": "code.sushuheng@gmail.com"
