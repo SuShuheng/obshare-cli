@@ -1,209 +1,173 @@
 # obshare-cli
 
-A command-line interface tool for uploading Obsidian Markdown documents to Feishu cloud documents.
+Upload Obsidian Markdown documents to Feishu cloud documents with a workflow built around `obshare-cli` and the bundled Obsidian companion plugin.
 
 [![PyPI version](https://badge.fury.io/py/obshare-cli.svg)](https://badge.fury.io/py/obshare-cli)
 [![Python](https://img.shields.io/pypi/pyversions/obshare-cli.svg)](https://pypi.org/project/obshare-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> [中文翻译点此](./README_Zh_CN.md)
-
-## Installation
+> [中文说明](./README_Zh_CN.md)
+>
+> `mermaid-cli` rendering has been removed. The supported Mermaid path is `obshare-cli` -> Obsidian CLI -> `obsidian-plugins` bridge -> PNG upload.
 
 ![pip-install-obshare-cli](./assets/obshare-cli.gif)
 
-Recommended when using `obsidian-plugins`: install `obshare-cli` into a dedicated conda environment named `obsd`.
+## Supported Stack
+
+This repository now has three layers:
+
+- `obshare-cli`: upload Markdown, manage permissions, inspect history, and return JSON for automation
+- `obsidian-plugins/`: the required desktop companion plugin for runtime binding, shared config/history management, and Mermaid rendering
+- Claude Code plugin skills: an agent-facing layer that drives the same CLI + Obsidian workflow
+
+If you want the supported experience, install the CLI and the Obsidian plugin together.
+
+## 5-Minute Quick Start
+
+### 1. Create the recommended `obsd` conda environment
 
 ```bash
 conda create -n obsd python -y
 conda run -n obsd python -m pip install --upgrade pip
 conda run -n obsd python -m pip install --upgrade obshare-cli
+conda run -n obsd obshare-cli --version
 ```
 
-### Optional: Mermaid Support
+### 2. Install the Obsidian companion plugin
 
-`obshare-cli` supports two Mermaid rendering modes:
+1. Copy [`obsidian-plugins/`](./obsidian-plugins/) into your vault plugin directory as `.obsidian/plugins/obshare-cli/`.
+2. Enable `obshare-cli` in Obsidian.
+3. Open the plugin settings.
+4. In `Environment Configuration`, choose the `conda (obsd)` runtime.
+5. Set a shared bridge directory that both Obsidian and `obshare-cli` can access.
 
-1. Local Mermaid CLI rendering:
+Detailed plugin shell notes live in [`obsidian-plugins/README.md`](./obsidian-plugins/README.md).
 
-```bash
-npm install -g @mermaid-js/mermaid-cli
-```
+### 3. Configure Feishu credentials in the CLI
 
-2. Obsidian bridge rendering through the bundled companion plugin in `obsidian-plugins/`.
+Get the required values from your Feishu Open Platform app and target folder.
 
-Use the Obsidian plugin together with `obshare-cli`. The plugin does not replace the CLI upload flow; it provides visual configuration, document/config management, and Mermaid rendering inside a real Obsidian environment.
-
-## Configuration
-
-First, configure your Feishu credentials:
-
-You can get these token by the guidance:
-
-> [feishu_config_guidance](./assets/feishu_config.png)
+> [Feishu config guidance](./assets/feishu_config.png)
 
 ```bash
-# Set App ID
 conda run -n obsd obshare-cli config set-app-id "cli_xxx"
-
-# Set App Secret
 conda run -n obsd obshare-cli config set-app-secret "xxx"
-
-# Set User ID
-conda run -n obsd obshare-cli config set-user-id "xxx"
-
-# Set Folder Token
-conda run -n obsd obshare-cli config set-folder "xxxxxxx"
-
-# Show current configuration
-conda run -n obsd obshare-cli config show
-
-# Test connection
-conda run -n obsd obshare-cli config test
+conda run -n obsd obshare-cli config set-user-id "ou_xxx"
+conda run -n obsd obshare-cli config set-folder "fldcnxxx"
 ```
 
-## Obsidian Companion Plugin
+### 4. Configure the Obsidian bridge on the CLI side
 
-`obsidian-plugins` is the Obsidian desktop companion plugin for `obshare-cli`. It is designed to be used together with `obshare-cli`, not as a standalone uploader.
-
-It provides:
-
-- Simple visual environment configuration
-- Shared document and configuration management
-- A Mermaid rendering bridge that lets `obshare-cli` trigger Obsidian to return Mermaid PNG images
-
-### Quick Start
-
-1. Create the recommended conda environment and install `obshare-cli`:
-
-```bash
-conda create -n obsd python -y
-conda run -n obsd python -m pip install --upgrade pip
-conda run -n obsd python -m pip install --upgrade obshare-cli
-```
-
-2. Copy `obsidian-plugins/` to your vault plugin directory: `.obsidian/plugins/obshare-cli/`
-3. Enable the plugin in Obsidian
-4. In the plugin settings, select the `conda (obsd)` runtime and set a shared bridge directory
-5. In `obshare-cli`, configure the same Obsidian bridge values:
+Use the same bridge directory that you configured in the plugin settings.
 
 ```bash
 conda run -n obsd obshare-cli config set-obsidian-cli obsidian
 conda run -n obsd obshare-cli config set-obsidian-bridge-dir /path/to/shared/bridge
 conda run -n obsd obshare-cli config set-obsidian-command-id obshare-cli:process-render-request
+conda run -n obsd obshare-cli config show
+conda run -n obsd obshare-cli config test
 ```
 
-After that, continue using the normal CLI workflow:
+### 5. Upload your first note
 
 ```bash
-conda run -n obsd obshare-cli upload document.md
+conda run -n obsd obshare-cli upload note.md
+conda run -n obsd obshare-cli --json upload note.md
 ```
 
-When Mermaid blocks are detected, `obshare-cli` can call the Obsidian plugin bridge to render images and continue the upload flow.
+If the note contains Mermaid blocks, `obshare-cli` writes a render request into the bridge directory, triggers `obsidian command id=obshare-cli:process-render-request`, waits for the plugin to return a PNG, and then uploads the final document to Feishu.
 
-## Usage
+## Command Quick Reference
 
-### Upload a Document
+`--json` is a global flag. Put it before the subcommand, for example `obshare-cli --json upload note.md`.
 
-```bash
-# Basic upload
-conda run -n obsd obshare-cli upload document.md
+| Command | Purpose |
+|---------|---------|
+| `obshare-cli config set-app-id <app_id>` | Save Feishu App ID |
+| `obshare-cli config set-app-secret <app_secret>` | Save Feishu App Secret |
+| `obshare-cli config set-user-id <user_id>` | Save Feishu user ID |
+| `obshare-cli config set-folder <folder_token>` | Save target Feishu folder |
+| `obshare-cli config set-obsidian-cli <command>` | Save the Obsidian CLI command or absolute path |
+| `obshare-cli config set-obsidian-bridge-dir <dir>` | Save the shared bridge directory |
+| `obshare-cli config set-obsidian-command-id <id>` | Save the render command ID |
+| `obshare-cli config show` | Show current config with secrets masked |
+| `obshare-cli config test` | Test Feishu connectivity |
+| `obshare-cli upload <file>` | Upload one Markdown note |
+| `obshare-cli list history` | Show local upload history |
+| `obshare-cli permission set <token> ...` | Update sharing permissions |
+| `obshare-cli delete <token>` | Delete a Feishu document |
 
-# Upload with JSON output (for AI agents)
-conda run -n obsd obshare-cli upload document.md --json
-
-# Upload with permissions
-conda run -n obsd obshare-cli upload document.md --public --allow-copy --allow-download
-```
-
-### View Upload History
+Common follow-up commands:
 
 ```bash
 conda run -n obsd obshare-cli list history
-conda run -n obsd obshare-cli list history --json
-```
-
-### Set Document Permissions
-
-```bash
+conda run -n obsd obshare-cli --json list history
 conda run -n obsd obshare-cli permission set <token> --public --allow-copy --allow-download
-```
-
-### Delete a Document
-
-```bash
 conda run -n obsd obshare-cli delete <token>
 ```
 
-## JSON Output Example
+## Shared State and Mermaid Bridge
 
-```json
-{
-  "success": true,
-  "document": {
-    "title": "My Note",
-    "token": "doxcnAbcDefGhi",
-    "url": "https://feishu.cn/docx/doxcnAbcDefGhi"
-  },
-  "permissions": {
-    "isPublic": false,
-    "allowCopy": false,
-    "allowCreateCopy": false
-  },
-  "uploadTime": "2024-01-15T10:30:00Z"
-}
-```
+The CLI and the Obsidian plugin share the same local state:
 
-## Features
+- `~/.obshare/config.json`: saved Feishu credentials and Obsidian bridge settings
+- `~/.obshare/history.json`: upload history used by the CLI and the plugin shell
 
-- Upload Markdown documents to Feishu
-- Support for YAML frontmatter
-- Support for Obsidian Callouts
-- Support for Mermaid diagrams (converted to images)
-- Optional Obsidian companion plugin for visual configuration and Mermaid bridge rendering
-- Support for embedded images (Obsidian `![[image.png]]` and Markdown `![](image.png)`)
-- Configurable document permissions
-- Upload history tracking
-- JSON output mode for AI/CLI integration
+Mermaid rendering is bridge-only in the current codebase:
 
-## Claude Code Plugin
+1. `obshare-cli` detects a Mermaid block in the Markdown file.
+2. The CLI writes a `*.request.json` file into the shared bridge directory.
+3. The CLI triggers `obshare-cli:process-render-request` through the Obsidian CLI.
+4. The Obsidian plugin renders the diagram and writes a `*.result.json` file plus a PNG.
+5. The CLI uploads the rendered PNG together with the rest of the note.
 
-This project includes a Claude Code Plugin for AI-assisted usage. The plugin provides skills for environment setup, configuration, uploading notes, managing permissions, and viewing upload history.
+## Obsidian Companion Plugin
 
-### Install Plugin
+The bundled Obsidian plugin is the desktop companion shell for `obshare-cli`, not a separate uploader.
+
+It provides:
+
+- `Environment Configuration`: detects `conda`, `obsd`, Python, pip, Obsidian CLI, and `obshare-cli`
+- `Upload Configuration`: edits the shared CLI config and runs connection tests
+- `Document Management`: reads upload history and dispatches permission/delete actions through the CLI
+- `About`: shows plugin/CLI version, language switching, and upgrade guidance
+
+For plugin-specific details, see [`obsidian-plugins/README.md`](./obsidian-plugins/README.md).
+
+## Claude Code Plugin Skills
+
+This repository also ships a Claude Code plugin through [`.claude-plugin/`](./.claude-plugin/) and [`skills/`](./skills/). These skills make the same Obsidian publishing workflow agent-friendly: Claude Code can set up the environment, configure Feishu and bridge values, upload notes, inspect history, and manage permissions without bypassing the CLI.
+
+### Install from the marketplace
 
 ```bash
-# Step 1: Add marketplace
 /plugin marketplace add SuShuHeng/obshare-cli
-
-# Step 2: Install plugin
 /plugin install obshare-cli
 ```
 
-### Available Skills
+### Available skills
 
-| Skill | Invocation | Description |
-|-------|------------|-------------|
-| Main | `/obshare-cli:obshare-cli` | Environment setup & CLI overview |
-| Config | `/obshare-cli:config` | Manage Feishu configuration |
-| Upload | `/obshare-cli:upload` | Upload documents to Feishu |
-| Permission | `/obshare-cli:permission` | Manage document permissions |
-| List | `/obshare-cli:list` | Query upload history |
-| Delete | `/obshare-cli:delete` | Delete Feishu documents |
+| Skill | Invocation | What it helps with |
+|-------|------------|--------------------|
+| Main | `/obshare-cli:obshare-cli` | Bootstrap `obsd`, explain commands, and choose the next action |
+| Config | `/obshare-cli:config` | Save Feishu credentials and Obsidian bridge values |
+| Upload | `/obshare-cli:upload` | Upload a note to Feishu |
+| List | `/obshare-cli:list` | Inspect local upload history |
+| Permission | `/obshare-cli:permission` | Update sharing flags for a document |
+| Delete | `/obshare-cli:delete` | Remove a Feishu document by token |
 
-### Usage with Claude Code
+### Example usage in Claude Code
 
 ```bash
-# In Claude Code, invoke skills with plugin namespace
-/obshare-cli:obshare-cli     # Get environment setup guide
-/obshare-cli:config          # Configure Feishu credentials
-/obshare-cli:upload note.md  # Upload a document
-/obshare-cli:list            # View upload history
+/obshare-cli:obshare-cli
+/obshare-cli:config
+/obshare-cli:upload note.md
+/obshare-cli:list
 ```
 
-### Local Development
+These skills are intended to power agentic Obsidian workflows in Claude Code while still relying on the same `obshare-cli` commands, shared config, shared history, and Obsidian bridge.
 
-To test the plugin locally:
+### Local development
 
 ```bash
 claude --plugin-dir /path/to/obshare-cli
@@ -212,28 +176,23 @@ claude --plugin-dir /path/to/obshare-cli
 ## Requirements
 
 - Python 3.8+
-- Node.js >= 16 (optional, for Mermaid rendering)
+- Conda, with `obsd` as the recommended runtime name
+- Obsidian desktop plus an available `obsidian` CLI command, or an absolute path configured through `set-obsidian-cli`
+- Feishu Open Platform credentials and a target folder token
 
 ## Development
 
 ```bash
-# Clone the repository
 git clone https://github.com/SuShuHeng/obshare-cli.git
 cd obshare-cli
-
-# Install in development mode
 pip install -e ".[dev]"
-
-# Run tests
 pytest
-
-# Build package
 python -m build
 ```
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE).
 
 ## Author
 
@@ -241,15 +200,13 @@ SuShuHeng (code.sushuheng@gmail.com)
 
 ## Thanks
 
-- [Obsidian](https://obsidian.md) - The best AI-powered note-taking software
-
-- [Lark Open Platform](https://open.feishu.cn) - Provides technical platform support
-- [ObShare](https://github.com/xigua222/ObShare) - A significant source for this project, thank you.
+- [Obsidian](https://obsidian.md)
+- [Lark Open Platform](https://open.feishu.cn)
+- [ObShare](https://github.com/xigua222/ObShare)
 
 ## Links
 
 - [ObShare Config Doc](https://itlueqqx8t.feishu.cn/docx/XUJmdxbf7octOFx3Vt0c3KJ3nWe)
-
 - [GitHub Repository](https://github.com/SuShuHeng/obshare-cli)
 - [PyPI Package](https://pypi.org/project/obshare-cli/)
 - [Issue Tracker](https://github.com/SuShuHeng/obshare-cli/issues)

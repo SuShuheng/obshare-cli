@@ -1,207 +1,173 @@
 # obshare-cli
 
-一个将 Obsidian Markdown 文档上传到飞书云文档的命令行工具。
+一个将 Obsidian Markdown 文档上传到飞书云文档的工作流，推荐形态是 `obshare-cli` 命令行与仓库自带的 Obsidian 配套插件联合使用。
 
 [![PyPI version](https://badge.fury.io/py/obshare-cli.svg)](https://badge.fury.io/py/obshare-cli)
 [![Python](https://img.shields.io/pypi/pyversions/obshare-cli.svg)](https://pypi.org/project/obshare-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 安装
+> [English README](./README.md)
+>
+> `mermaid-cli` 渲染链路已经移除。当前受支持的 Mermaid 方案只有 `obshare-cli` -> Obsidian CLI -> `obsidian-plugins` bridge -> PNG 上传。
 
 ![pip-install-obshare-cli](./assets/obshare-cli.gif)
 
-如果需要配合 `obsidian-plugins` 使用，推荐将 `obshare-cli` 安装到名为 `obsd` 的独立 conda 环境中。
+## 推荐安装形态
+
+当前仓库可以理解成 3 层能力：
+
+- `obshare-cli`：负责上传 Markdown、管理权限、查询历史，以及输出 JSON 结果
+- `obsidian-plugins/`：必装的桌面配套插件，负责运行时绑定、共享配置/历史，以及 Mermaid 渲染
+- Claude Code plugin skills：给 Claude Code 提供可调用技能，把同一条 Obsidian 发布链路智能体化
+
+如果你希望按项目当前受支持的方式使用，请把 CLI 和 Obsidian 插件一起安装。
+
+## 5 分钟快速开始
+
+### 1. 创建推荐的 `obsd` conda 环境
 
 ```bash
 conda create -n obsd python -y
 conda run -n obsd python -m pip install --upgrade pip
 conda run -n obsd python -m pip install --upgrade obshare-cli
+conda run -n obsd obshare-cli --version
 ```
 
-### 可选：Mermaid 图表支持
+### 2. 安装 Obsidian 配套插件
 
-`obshare-cli` 支持两种 Mermaid 渲染方式：
+1. 将 [`obsidian-plugins/`](./obsidian-plugins/) 复制到你的 Vault 插件目录，目标路径为 `.obsidian/plugins/obshare-cli/`
+2. 在 Obsidian 中启用 `obshare-cli`
+3. 打开插件设置
+4. 在 `Environment Configuration` 中选择 `conda (obsd)` 运行时
+5. 设置一个 Obsidian 与 `obshare-cli` 都能访问到的共享 bridge 目录
 
-1. 本地 Mermaid CLI 渲染：
+插件界面的更多说明见 [`obsidian-plugins/README.md`](./obsidian-plugins/README.md)。
 
-```bash
-npm install -g @mermaid-js/mermaid-cli
-```
+### 3. 在 CLI 中配置飞书凭证
 
-2. 通过 `obsidian-plugins/` 中附带的 Obsidian 配套插件进行桥接渲染。
-
-Obsidian 插件必须与 `obshare-cli` 配合使用。它不会替代 CLI 的上传流程，而是提供可视化环境配置、文档与配置管理，以及在真实 Obsidian 环境中的 Mermaid 渲染能力。
-
-## 配置
-
-首先，配置你的飞书凭证：
-
-你可以通过以下指南获取这些令牌：
+你需要先从飞书开放平台应用和目标文件夹中拿到这些值。
 
 > [飞书配置指南](./assets/feishu_config.png)
 
 ```bash
-# 设置 App ID
 conda run -n obsd obshare-cli config set-app-id "cli_xxx"
-
-# 设置 App Secret
 conda run -n obsd obshare-cli config set-app-secret "xxx"
-
-# 设置 User ID
-conda run -n obsd obshare-cli config set-user-id "xxx"
-
-# 设置文件夹 Token
-conda run -n obsd obshare-cli config set-folder "xxxxxxx"
-
-# 查看当前配置
-conda run -n obsd obshare-cli config show
-
-# 测试连接
-conda run -n obsd obshare-cli config test
+conda run -n obsd obshare-cli config set-user-id "ou_xxx"
+conda run -n obsd obshare-cli config set-folder "fldcnxxx"
 ```
 
-## Obsidian 配套插件
+### 4. 在 CLI 侧补全 Obsidian bridge 配置
 
-`obsidian-plugins` 是 `obshare-cli` 的 Obsidian 桌面配套插件，设计目标是与 `obshare-cli` 共同使用，而不是作为独立上传器单独运行。
-
-它提供：
-
-- 简单的可视化环境配置
-- 共享的文档与配置管理
-- Mermaid 渲染桥接能力，可让 `obshare-cli` 调用 Obsidian 返回 Mermaid PNG 图片
-
-### 快速开始
-
-1. 创建推荐的 conda 环境并安装 `obshare-cli`：
-
-```bash
-conda create -n obsd python -y
-conda run -n obsd python -m pip install --upgrade pip
-conda run -n obsd python -m pip install --upgrade obshare-cli
-```
-
-2. 将 `obsidian-plugins/` 复制到你的 Vault 插件目录：`.obsidian/plugins/obshare-cli/`
-3. 在 Obsidian 中启用该插件
-4. 在插件设置中选择 `conda (obsd)` 运行时，并设置共享 bridge 目录
-5. 在 `obshare-cli` 中配置相同的 Obsidian 桥接参数：
+这里的 bridge 目录必须与插件设置里填写的目录一致。
 
 ```bash
 conda run -n obsd obshare-cli config set-obsidian-cli obsidian
 conda run -n obsd obshare-cli config set-obsidian-bridge-dir /path/to/shared/bridge
 conda run -n obsd obshare-cli config set-obsidian-command-id obshare-cli:process-render-request
+conda run -n obsd obshare-cli config show
+conda run -n obsd obshare-cli config test
 ```
 
-完成后，继续使用正常的 CLI 上传流程：
+### 5. 上传第一篇笔记
 
 ```bash
-conda run -n obsd obshare-cli upload document.md
+conda run -n obsd obshare-cli upload note.md
+conda run -n obsd obshare-cli --json upload note.md
 ```
 
-当文档中检测到 Mermaid 代码块时，`obshare-cli` 就可以通过 Obsidian 插件桥接完成图片渲染，并继续后续上传流程。
+如果笔记里包含 Mermaid 代码块，`obshare-cli` 会把渲染请求写入 bridge 目录，调用 `obsidian command id=obshare-cli:process-render-request`，等待插件返回 PNG，再继续把最终文档上传到飞书。
 
-## 使用方法
+## 命令速查
 
-### 上传文档
+`--json` 是全局参数，必须放在子命令前面，例如 `obshare-cli --json upload note.md`。
 
-```bash
-# 基本上传
-conda run -n obsd obshare-cli upload document.md
+| 命令 | 作用 |
+|------|------|
+| `obshare-cli config set-app-id <app_id>` | 保存飞书 App ID |
+| `obshare-cli config set-app-secret <app_secret>` | 保存飞书 App Secret |
+| `obshare-cli config set-user-id <user_id>` | 保存飞书用户 ID |
+| `obshare-cli config set-folder <folder_token>` | 保存目标飞书文件夹 |
+| `obshare-cli config set-obsidian-cli <command>` | 保存 Obsidian CLI 命令名或绝对路径 |
+| `obshare-cli config set-obsidian-bridge-dir <dir>` | 保存共享 bridge 目录 |
+| `obshare-cli config set-obsidian-command-id <id>` | 保存渲染命令 ID |
+| `obshare-cli config show` | 查看当前配置，敏感值会被遮罩 |
+| `obshare-cli config test` | 测试飞书连接 |
+| `obshare-cli upload <file>` | 上传单个 Markdown 笔记 |
+| `obshare-cli list history` | 查看本地上传历史 |
+| `obshare-cli permission set <token> ...` | 更新分享权限 |
+| `obshare-cli delete <token>` | 删除飞书文档 |
 
-# 以 JSON 格式输出（适用于 AI 代理）
-conda run -n obsd obshare-cli upload document.md --json
-
-# 上传并设置权限
-conda run -n obsd obshare-cli upload document.md --public --allow-copy --allow-download
-```
-
-### 查看上传历史
+常用后续命令：
 
 ```bash
 conda run -n obsd obshare-cli list history
-conda run -n obsd obshare-cli list history --json
-```
-
-### 设置文档权限
-
-```bash
+conda run -n obsd obshare-cli --json list history
 conda run -n obsd obshare-cli permission set <token> --public --allow-copy --allow-download
-```
-
-### 删除文档
-
-```bash
 conda run -n obsd obshare-cli delete <token>
 ```
 
-## JSON 输出示例
+## 共享状态与 Mermaid Bridge
 
-```json
-{
-  "success": true,
-  "document": {
-    "title": "我的笔记",
-    "token": "doxcnAbcDefGhi",
-    "url": "https://feishu.cn/docx/doxcnAbcDefGhi"
-  },
-  "permissions": {
-    "isPublic": false,
-    "allowCopy": false,
-    "allowCreateCopy": false
-  },
-  "uploadTime": "2024-01-15T10:30:00Z"
-}
-```
+CLI 与 Obsidian 插件共享同一套本地状态：
 
-## 功能特性
+- `~/.obshare/config.json`：保存飞书凭证与 Obsidian bridge 设置
+- `~/.obshare/history.json`：保存上传历史，CLI 与插件界面都会读取
 
-- 将 Markdown 文档上传到飞书
-- 支持 YAML frontmatter
-- 支持 Obsidian Callouts（标注块）
-- 支持 Mermaid 图表（转换为图片）
-- 可选的 Obsidian 配套插件，提供可视化配置和 Mermaid 桥接渲染
-- 支持嵌入图片（Obsidian `![[image.png]]` 和 Markdown `![](image.png)` 格式）
-- 可配置的文档权限
-- 上传历史记录追踪
-- JSON 输出模式，便于 AI/CLI 集成
+当前代码里的 Mermaid 渲染链路只有 bridge 这一条：
 
-## Claude Code 插件
+1. `obshare-cli` 识别 Markdown 中的 Mermaid 代码块
+2. CLI 在共享 bridge 目录中写入 `*.request.json`
+3. CLI 通过 Obsidian CLI 触发 `obshare-cli:process-render-request`
+4. Obsidian 插件完成渲染并写回 `*.result.json` 和 PNG
+5. CLI 将渲染后的 PNG 与正文一起上传到飞书
 
-本项目包含 Claude Code 插件，支持 AI 辅助使用。插件提供环境设置、配置、上传笔记、管理权限和查看上传历史等技能。
+## Obsidian 配套插件
 
-### 安装插件
+仓库中的 Obsidian 插件是 `obshare-cli` 的桌面配套外壳，不是另一套独立上传器。
+
+它提供：
+
+- `Environment Configuration`：探测 `conda`、`obsd`、Python、pip、Obsidian CLI 与 `obshare-cli`
+- `Upload Configuration`：直接编辑共享 CLI 配置并执行连接测试
+- `Document Management`：读取上传历史，并通过 CLI 分发删除/权限更新
+- `About`：显示插件与 CLI 版本、语言切换与升级提示
+
+插件细节请看 [`obsidian-plugins/README.md`](./obsidian-plugins/README.md)。
+
+## Claude Code Plugin Skills
+
+仓库还自带 Claude Code plugin，入口在 [`.claude-plugin/`](./.claude-plugin/) 与 [`skills/`](./skills/)。它的定位不是替代 CLI，而是把同一套 `obshare-cli + Obsidian 插件` 工作流暴露为 Claude 可调用的技能，让 Obsidian 发布流程具备智能体能力。
+
+### 从 marketplace 安装
 
 ```bash
-# 第一步：添加 marketplace
 /plugin marketplace add SuShuHeng/obshare-cli
-
-# 第二步：安装插件
 /plugin install obshare-cli
 ```
 
 ### 可用技能
 
-| Skill | 调用方式 | 描述 |
-|-------|----------|------|
-| 主技能 | `/obshare-cli:obshare-cli` | 环境设置和 CLI 概述 |
-| 配置 | `/obshare-cli:config` | 管理飞书配置 |
-| 上传 | `/obshare-cli:upload` | 上传文档到飞书 |
-| 权限 | `/obshare-cli:permission` | 管理文档权限 |
-| 列表 | `/obshare-cli:list` | 查询上传历史 |
-| 删除 | `/obshare-cli:delete` | 删除飞书文档 |
+| Skill | 调用方式 | 适用场景 |
+|-------|----------|----------|
+| 主技能 | `/obshare-cli:obshare-cli` | 初始化 `obsd`、了解命令面并决定下一步 |
+| 配置 | `/obshare-cli:config` | 配置飞书凭证与 Obsidian bridge |
+| 上传 | `/obshare-cli:upload` | 上传笔记到飞书 |
+| 列表 | `/obshare-cli:list` | 查看本地上传历史 |
+| 权限 | `/obshare-cli:permission` | 更新文档分享权限 |
+| 删除 | `/obshare-cli:delete` | 根据 token 删除飞书文档 |
 
 ### 在 Claude Code 中使用
 
 ```bash
-# 在 Claude Code 中，使用插件命名空间调用技能
-/obshare-cli:obshare-cli     # 获取环境设置指南
-/obshare-cli:config          # 配置飞书凭证
-/obshare-cli:upload note.md  # 上传文档
-/obshare-cli:list            # 查看上传历史
+/obshare-cli:obshare-cli
+/obshare-cli:config
+/obshare-cli:upload note.md
+/obshare-cli:list
 ```
 
-### 本地开发
+这些 skills 适合把你的 Obsidian 发布流程接入 Claude Code 智能体，但底层仍然复用同一套 `obshare-cli` 命令、共享配置、共享历史与 Obsidian bridge。
 
-本地测试插件：
+### 本地开发
 
 ```bash
 claude --plugin-dir /path/to/obshare-cli
@@ -210,28 +176,23 @@ claude --plugin-dir /path/to/obshare-cli
 ## 系统要求
 
 - Python 3.8+
-- Node.js >= 16（可选，用于 Mermaid 渲染）
+- Conda，推荐环境名为 `obsd`
+- Obsidian 桌面端，以及可调用的 `obsidian` CLI 命令，或通过 `set-obsidian-cli` 配置其绝对路径
+- 飞书开放平台凭证与目标文件夹 Token
 
 ## 开发
 
 ```bash
-# 克隆仓库
 git clone https://github.com/SuShuHeng/obshare-cli.git
 cd obshare-cli
-
-# 以开发模式安装
 pip install -e ".[dev]"
-
-# 运行测试
 pytest
-
-# 构建包
 python -m build
 ```
 
 ## 许可证
 
-MIT License - 详见 [LICENSE](LICENSE)。
+MIT License，详见 [LICENSE](LICENSE)。
 
 ## 作者
 
@@ -239,15 +200,13 @@ MIT License - 详见 [LICENSE](LICENSE)。
 
 ## 致谢
 
-- [Obsidian](https://obsidian.md) - 最好的 AI 驱动笔记软件
-
-- [飞书开放平台](https://open.feishu.cn) - 提供技术平台支持
-- [ObShare](https://github.com/xigua222/ObShare) - 本项目的重要参考来源，感谢！
+- [Obsidian](https://obsidian.md)
+- [飞书开放平台](https://open.feishu.cn)
+- [ObShare](https://github.com/xigua222/ObShare)
 
 ## 链接
 
 - [ObShare 配置文档](https://itlueqqx8t.feishu.cn/docx/XUJmdxbf7octOFx3Vt0c3KJ3nWe)
-
 - [GitHub 仓库](https://github.com/SuShuHeng/obshare-cli)
 - [PyPI 包](https://pypi.org/project/obshare-cli/)
 - [问题反馈](https://github.com/SuShuHeng/obshare-cli/issues)

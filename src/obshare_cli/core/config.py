@@ -169,7 +169,7 @@ class ConfigManager:
             encrypted_data = CryptoUtils.encrypt_sensitive_settings(data)
 
             with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(encrypted_data, f, indent=2)
+                json.dump(encrypted_data, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
             raise RuntimeError(f"Failed to save config: {e}")

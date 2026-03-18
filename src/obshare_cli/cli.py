@@ -373,7 +373,11 @@ def upload(ctx, file, public, allow_copy, allow_download):
         title = file_path.stem
 
         # Create API client
-        client = FeishuApiClient(config.app_id, config.app_secret)
+        client = FeishuApiClient(
+            config.app_id,
+            config.app_secret,
+            mermaid_renderer=_build_mermaid_renderer(config),
+        )
 
         if not ctx.obj['json']:
             click.echo(f"[UPLOAD] Uploading: {title}.md")

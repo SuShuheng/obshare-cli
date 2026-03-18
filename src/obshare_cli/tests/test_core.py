@@ -109,6 +109,23 @@ class TestConfig(unittest.TestCase):
             "obshare-cli:process-render-request",
         )
 
+    def test_save_config_writes_unicode_paths_without_ascii_escaping(self):
+        """Unicode path settings should be stored as readable UTF-8 JSON."""
+        config = ConfigManager(tempfile.mkdtemp())
+        bridge_dir = "C:/用户/桌面/共享目录"
+        cli_path = "C:/工具/黑曜石/Obsidian.exe"
+
+        config.update_config(
+            obsidian_cli_command=cli_path,
+            obsidian_bridge_dir=bridge_dir,
+        )
+
+        raw_config = config.config_file.read_text(encoding="utf-8")
+
+        self.assertIn(cli_path, raw_config)
+        self.assertIn(bridge_dir, raw_config)
+        self.assertNotIn("\\u", raw_config)
+
     def test_runtime_binding_fields_round_trip(self):
         """Plugin runtime binding settings should be persisted and loaded."""
         config = ConfigManager(tempfile.mkdtemp())
@@ -208,6 +225,42 @@ class TestUploadCli(unittest.TestCase):
         self.assertFalse(payload["success"])
         self.assertEqual(payload["error"]["code"], "UPLOAD_FAILED")
         self.assertIn("boom", payload["error"]["message"])
+
+    def test_upload_passes_configured_mermaid_renderer_to_api_client(self):
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            app_id="test_app_id",
+            app_secret="test_app_secret",
+            user_id="test_user_id",
+            folder_token="test_folder_token",
+            obsidian_cli_command="C:/工具/黑曜石/Obsidian.exe",
+            obsidian_bridge_dir="C:/用户/桌面/共享目录",
+        )
+
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            note_path = Path("demo.md")
+            note_path.write_text(
+                "```mermaid\nflowchart TD\nA --> B\n```\n",
+                encoding="utf-8",
+            )
+
+            mock_client = Mock()
+            mock_client.upload_document.side_effect = Exception("stop-after-construction")
+
+            with patch("obshare_cli.cli.ConfigManager", return_value=config), patch(
+                "obshare_cli.cli.FeishuApiClient",
+                return_value=mock_client,
+            ) as mock_ctor:
+                result = runner.invoke(cli, ["upload", str(note_path)])
+
+        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(
+            mock_ctor.call_args.args,
+            ("test_app_id", "test_app_secret"),
+        )
+        self.assertIn("mermaid_renderer", mock_ctor.call_args.kwargs)
+        self.assertTrue(mock_ctor.call_args.kwargs["mermaid_renderer"].is_installed())
 
 
 class TestMarkdownConverter(unittest.TestCase):
