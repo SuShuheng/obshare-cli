@@ -1,72 +1,60 @@
 ---
 name: obshare-cli
-description: Upload Obsidian Markdown documents to Feishu (Lark) cloud documents. Use for environment setup, configuration, uploading notes, managing permissions, and viewing upload history.
+description: Use when setting up obshare-cli 0.1.7, reviewing available commands, or choosing the right command for config, upload, permission, history, or delete tasks.
 ---
 
 # obshare-cli
 
-A CLI tool for uploading Obsidian Markdown documents to Feishu (Lark) cloud documents.
+`obshare-cli` uploads Markdown documents to Feishu and keeps local upload history. The recommended runtime for this plugin is the `obsd` conda environment.
 
-## Environment Setup
+## Setup
 
 ```bash
-# Create conda environment
-conda create -n obsd python=3.12 -y
-
-# Install obshare-cli
-conda run -n obsd python -m pip install obshare-cli
-
-# Verify installation
+conda create -n obsd python -y
+conda run -n obsd python -m pip install --upgrade pip
+conda run -n obsd python -m pip install --upgrade obshare-cli
+conda run -n obsd obshare-cli --version
 conda run -n obsd obshare-cli --help
 ```
 
 ## Global Options
 
-| Option | Description |
-|--------|-------------|
-| `--json` | Output in JSON format (useful for AI agent integration) |
+| Option | Purpose |
+|--------|---------|
+| `--json` | Return machine-friendly JSON output |
 | `--debug` | Enable debug logging |
-| `--version` | Show version (current: 0.1.0) |
+| `--version` | Show installed version |
 
-## Available Commands
+`--json` and `--debug` are global flags. Put them before the command, for example `obshare-cli --json config show`.
 
-| Command | Description |
-|---------|-------------|
-| `config` | Manage Feishu configuration (app ID, secret, user ID, folder) |
-| `upload` | Upload Obsidian Markdown document to Feishu |
-| `permission` | Manage document permissions |
-| `list` | Query resources (upload history) |
-| `delete` | Delete a Feishu document |
+## Commands
 
-## Configuration Storage
-
-- **Location**: `~/.obshare/config.json` (platform-specific)
-- **Encryption**: Uses Fernet (AES-128-CBC + HMAC-SHA256) for sensitive fields
-- **Required fields**: `app_id`, `app_secret`, `user_id`, `folder_token`
+| Command | Purpose |
+|---------|---------|
+| `config` | Save credentials and optional Obsidian bridge settings |
+| `upload` | Upload a Markdown file to Feishu |
+| `permission` | Change document sharing permissions |
+| `list` | Show local upload history |
+| `delete` | Delete a document by token |
 
 ## Quick Start
 
 ```bash
-# 1. Configure Feishu credentials
 conda run -n obsd obshare-cli config set-app-id "cli_xxx"
 conda run -n obsd obshare-cli config set-app-secret "xxx"
-conda run -n obsd obshare-cli config set-user-id "xxx"
+conda run -n obsd obshare-cli config set-user-id "ou_xxx"
 conda run -n obsd obshare-cli config set-folder "fldcnxxx"
-
-# 2. Test connection
 conda run -n obsd obshare-cli config test
-
-# 3. Upload a document
-conda run -n obsd obshare-cli upload document.md
-
-# 4. View upload history
+conda run -n obsd obshare-cli upload note.md
 conda run -n obsd obshare-cli list history
 ```
 
-## Related Skills
+## Optional Obsidian Bridge
 
-- `/obshare-cli:config` - Detailed configuration management
-- `/obshare-cli:upload` - Document upload with options
-- `/obshare-cli:permission` - Permission management
-- `/obshare-cli:list` - Query upload history
-- `/obshare-cli:delete` - Delete documents
+If you use the companion Obsidian plugin, also set:
+
+```bash
+conda run -n obsd obshare-cli config set-obsidian-cli obsidian
+conda run -n obsd obshare-cli config set-obsidian-bridge-dir /path/to/shared/bridge
+conda run -n obsd obshare-cli config set-obsidian-command-id obshare-cli:process-render-request
+```

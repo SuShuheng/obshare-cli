@@ -1,84 +1,50 @@
 ---
 name: config
-description: Manage Feishu configuration for obshare-cli. Use for setting app ID, app secret, user ID, folder token, viewing configuration, testing connection, or clearing configuration.
-argument-hint: <subcommand> [value]
+description: Use when configuring obshare-cli credentials, checking saved settings, testing connectivity, clearing local config, or setting optional Obsidian bridge values.
 ---
 
 # obshare-cli config
 
-Manage Feishu API configuration.
+Manage saved configuration for Feishu uploads and optional Obsidian bridge integration.
 
-## Subcommands
+## Quick Reference
 
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `set-app-id` | `<app_id>` | Set Feishu App ID |
-| `set-app-secret` | `<app_secret>` | Set Feishu App Secret |
-| `set-user-id` | `<user_id>` | Set Feishu User ID |
-| `set-folder` | `<folder_token>` | Set Feishu Folder Token |
-| `show` | - | Display current configuration (masks sensitive data) |
-| `test` | - | Test connection to Feishu API |
-| `clear` | - | Clear all configuration |
+| Command | Purpose |
+|---------|---------|
+| `set-app-id <app_id>` | Save Feishu App ID |
+| `set-app-secret <app_secret>` | Save Feishu App Secret |
+| `set-user-id <user_id>` | Save Feishu user ID |
+| `set-folder <folder_token>` | Save target folder token |
+| `set-obsidian-cli <command>` | Save Obsidian CLI command name/path |
+| `set-obsidian-bridge-dir <dir>` | Save shared bridge directory |
+| `set-obsidian-command-id <id>` | Save Obsidian render command ID |
+| `show` | Show current config with sensitive values masked |
+| `test` | Test Feishu connectivity |
+| `clear` | Remove saved local config |
 
-## Usage
-
-### Set Configuration
+## Common Usage
 
 ```bash
-# Set App ID (from Feishu Open Platform)
+# Required Feishu settings
 conda run -n obsd obshare-cli config set-app-id "cli_xxx"
-
-# Set App Secret (from Feishu Open Platform)
-conda run -n obsd obshare-cli config set-app-secret "your_app_secret"
-
-# Set User ID (your Feishu user ID)
+conda run -n obsd obshare-cli config set-app-secret "xxx"
 conda run -n obsd obshare-cli config set-user-id "ou_xxx"
-
-# Set Folder Token (target folder for uploads)
 conda run -n obsd obshare-cli config set-folder "fldcnxxx"
-```
 
-### View Configuration
+# Optional Obsidian bridge settings for Mermaid rendering
+conda run -n obsd obshare-cli config set-obsidian-cli obsidian
+conda run -n obsd obshare-cli config set-obsidian-bridge-dir /path/to/shared/bridge
+conda run -n obsd obshare-cli config set-obsidian-command-id obshare-cli:process-render-request
 
-```bash
-# Show current configuration (sensitive data is masked)
+# Inspect and test
 conda run -n obsd obshare-cli config show
-
-# JSON output for programmatic use
-conda run -n obsd obshare-cli config show --json
-```
-
-### Test Connection
-
-```bash
-# Verify configuration and test API connection
+conda run -n obsd obshare-cli --json config show
 conda run -n obsd obshare-cli config test
 ```
 
-### Clear Configuration
+## Notes
 
-```bash
-# Remove all saved configuration
-conda run -n obsd obshare-cli config clear
-```
-
-## Configuration Details
-
-- **Storage Location**: `~/.obshare/config.json`
-- **Encryption**: Sensitive fields (app_secret) are encrypted using Fernet symmetric encryption
-- **Required Fields**: All four fields must be set before uploading documents
-
-## How to Get Credentials
-
-1. **App ID & App Secret**:
-   - Go to [Feishu Open Platform](https://open.feishu.cn/)
-   - Create a custom app
-   - Find App ID and App Secret in app settings
-
-2. **User ID**:
-   - Your Feishu user ID (format: `ou_xxx`)
-   - Can be obtained from Feishu admin panel or API
-
-3. **Folder Token**:
-   - Open the target folder in Feishu Docs
-   - Copy the token from URL (format: `fldcnxxx`)
+- Uploads require `app_id`, `app_secret`, `user_id`, and `folder_token`.
+- Config is stored in `~/.obshare/config.json`.
+- Sensitive fields are stored encrypted when cryptography support is available.
+- `--json` is a global option: place it before the subcommand, not after `show` or `test`.

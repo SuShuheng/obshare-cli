@@ -1,79 +1,36 @@
 ---
 name: permission
-description: Manage Feishu document permissions. Use for setting document visibility, allowing copy/download, or modifying access settings.
-argument-hint: set <token> [options]
+description: Use when changing Feishu document visibility, copy permissions, or download permissions for an uploaded document token.
 ---
 
 # obshare-cli permission
 
-Manage permissions for uploaded Feishu documents.
+Adjust sharing permissions for an existing Feishu document.
 
-## Subcommands
+## Available Subcommand
 
-| Command | Description |
-|---------|-------------|
-| `set` | Set document permissions |
+| Command | Purpose |
+|---------|---------|
+| `set <token>` | Update sharing flags for one document |
 
-## permission set
-
-Modify permissions for an existing document.
-
-### Syntax
+## Syntax
 
 ```bash
-conda run -n obsd obshare-cli permission set <token> [OPTIONS]
+conda run -n obsd obshare-cli permission set <token> [--public] [--allow-copy] [--allow-download]
+conda run -n obsd obshare-cli --json permission set <token> [--public] [--allow-copy] [--allow-download]
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `<token>` | Document token (format: `doxcnxxx`) |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--public` | Make document publicly accessible |
-| `--allow-copy` | Allow copying content |
-| `--allow-download` | Allow download and create copy |
-| `--json` | Output in JSON format |
-
-## Usage Examples
-
-### Make Document Public
+## Examples
 
 ```bash
-# Set document as public
 conda run -n obsd obshare-cli permission set doxcnAbcDefGhi --public
-```
-
-### Set Multiple Permissions
-
-```bash
-# Allow copy and download
 conda run -n obsd obshare-cli permission set doxcnAbcDefGhi --allow-copy --allow-download
-
-# Full public access
-conda run -n obsd obshare-cli permission set doxcnAbcDefGhi --public --allow-copy --allow-download
+conda run -n obsd obshare-cli --json permission set doxcnAbcDefGhi --public --allow-copy
 ```
-
-### JSON Output
-
-```bash
-conda run -n obsd obshare-cli permission set doxcnAbcDefGhi --public --json
-```
-
-## Permission Types
-
-| Permission | Effect |
-|------------|--------|
-| `--public` | Anyone with the link can view the document |
-| `--allow-copy` | Viewers can copy content from the document |
-| `--allow-download` | Viewers can download and create their own copy |
 
 ## Notes
 
-- Document token can be found in upload output or history
-- Permissions are applied immediately
-- Use `/obshare-cli:list` to view document tokens from upload history
+- `--public` makes the document link-accessible.
+- `--allow-copy` allows viewers to copy content.
+- `--allow-download` allows download and create-copy behavior.
+- Updated permission flags are also written back into local history when the token exists there.

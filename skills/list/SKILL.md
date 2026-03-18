@@ -1,84 +1,35 @@
 ---
 name: list
-description: Query obshare-cli resources and upload history. Use for viewing past uploads, finding document tokens, or checking upload status.
-argument-hint: <subcommand>
+description: Use when checking obshare-cli upload history, finding document tokens, or reviewing previous upload URLs and permission snapshots.
 ---
 
 # obshare-cli list
 
-Query resources and upload history.
+Inspect locally saved upload history.
 
-## Subcommands
+## Available Subcommand
 
-| Command | Description |
-|---------|-------------|
-| `history` | Show upload history |
+| Command | Purpose |
+|---------|---------|
+| `history` | Show previous uploads saved in local history |
 
-## list history
-
-Display the history of all uploaded documents.
-
-### Syntax
+## Syntax
 
 ```bash
-conda run -n obsd obshare-cli list history [OPTIONS]
-```
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output in JSON format |
-
-## Usage Examples
-
-### View History
-
-```bash
-# Show upload history
 conda run -n obsd obshare-cli list history
-
-# JSON output for programmatic use
-conda run -n obsd obshare-cli list history --json
+conda run -n obsd obshare-cli --json list history
 ```
 
-## History Data Structure
+## What History Contains
 
-Each history entry contains:
-
-| Field | Description |
-|-------|-------------|
-| `title` | Document title |
-| `docToken` | Document token (for permission/delete operations) |
-| `url` | Feishu document URL |
-| `uploadTime` | Upload timestamp |
-| `permissions` | Permission settings (isPublic, allowCopy, allowCreateCopy) |
-
-### JSON Output Example
-
-```json
-[
-  {
-    "title": "My Note",
-    "docToken": "doxcnAbcDefGhi",
-    "url": "https://feishu.cn/docx/doxcnAbcDefGhi",
-    "uploadTime": "2024-01-15 10:30",
-    "permissions": {
-      "isPublic": false,
-      "allowCopy": false,
-      "allowCreateCopy": false
-    }
-  }
-]
-```
-
-## Storage
-
-- **Location**: `~/.obshare/history.json`
-- **Format**: JSON array of upload records
+- Document title
+- Feishu document token
+- Feishu document URL
+- Upload time
+- Saved permission flags
 
 ## Notes
 
-- History is automatically updated on each upload
-- Use `docToken` from history for `permission set` and `delete` commands
-- History persists across sessions
+- History is stored in `~/.obshare/history.json`.
+- Use tokens from this output with `permission set` or `delete`.
+- `--json` is a global flag and must appear before `list`.

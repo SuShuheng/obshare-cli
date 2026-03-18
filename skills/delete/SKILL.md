@@ -1,64 +1,28 @@
 ---
 name: delete
-description: Delete a Feishu document uploaded via obshare-cli. Use for removing documents, cleaning up, or managing cloud storage.
-argument-hint: <token>
+description: Use when removing a Feishu document by token and cleaning the matching entry from local obshare-cli upload history.
 ---
 
 # obshare-cli delete
 
-Delete a Feishu cloud document.
+Delete a Feishu document by token.
 
 ## Syntax
 
 ```bash
-conda run -n obsd obshare-cli delete <token> [OPTIONS]
+conda run -n obsd obshare-cli delete <token>
+conda run -n obsd obshare-cli --json delete <token>
 ```
 
-## Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `<token>` | Document token to delete (format: `doxcnxxx`) |
-
-## Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output in JSON format |
-
-## Usage Examples
-
-### Delete a Document
+## Example
 
 ```bash
-# Delete by document token
 conda run -n obsd obshare-cli delete doxcnAbcDefGhi
-
-# JSON output
-conda run -n obsd obshare-cli delete doxcnAbcDefGhi --json
-```
-
-## Behavior
-
-When you delete a document:
-
-1. **Feishu Document**: The document is moved to trash in Feishu
-2. **Local History**: The entry is removed from `~/.obshare/history.json`
-
-## Finding Document Tokens
-
-Use the list command to find document tokens:
-
-```bash
-# View upload history to find tokens
-conda run -n obsd obshare-cli list history
-
-# Or with JSON output
-conda run -n obsd obshare-cli list history --json
+conda run -n obsd obshare-cli --json delete doxcnAbcDefGhi
 ```
 
 ## Notes
 
-- Deletion is irreversible (document goes to Feishu trash)
-- Document token format: `doxcn` followed by alphanumeric characters
-- Requires valid configuration (use `/obshare-cli:config` to set up)
+- Use a document token from upload output or `obshare-cli list history`.
+- Deleting also removes the matching record from `~/.obshare/history.json`.
+- `--json` is a global flag and must appear before `delete`.
