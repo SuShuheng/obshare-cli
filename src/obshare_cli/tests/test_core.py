@@ -374,14 +374,15 @@ graph TD
         blocks = converter.extract_mermaid_blocks(content)
         self.assertEqual(len(blocks), 1)
 
-    def test_render_mermaid_to_png_fails_without_mmdc(self):
-        """Mermaid renderer should return a structured failure when mmdc is missing."""
+    def test_render_mermaid_to_png_requires_obsidian_bridge(self):
+        """Mermaid renderer should fail fast when no companion bridge is configured."""
         renderer = MermaidRenderer(executable="/definitely/missing/mmdc")
 
         result = renderer.render_mermaid_to_png("flowchart TD\nA-->B")
 
         self.assertFalse(result.success)
-        self.assertIn("Mermaid CLI not installed", result.error)
+        self.assertIn("Obsidian companion bridge", result.error)
+        self.assertNotIn("mmdc", result.error)
 
     def test_render_mermaid_to_png_with_obsidian_bridge(self):
         """Bridge-backed Mermaid rendering should return PNG metadata."""

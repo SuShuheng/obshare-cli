@@ -15,6 +15,7 @@ from obshare_cli.core.api_client import FeishuApiClient
 from obshare_cli.utils.output import format_upload_result
 from obshare_cli.utils.converter import MarkdownConverter
 from obshare_cli.utils.mermaid import MermaidRenderer
+from obshare_cli.core.obsidian_bridge import MermaidBridgeResult
 
 
 class TestUpload(unittest.TestCase):
@@ -64,6 +65,37 @@ graph TD
 ```"""
         blocks = converter.extract_mermaid_blocks(content)
         self.assertEqual(len(blocks), 1)
+
+    def test_mermaid_renderer_requires_bridge_when_rendering(self):
+        renderer = MermaidRenderer()
+
+        result = renderer.render_mermaid_to_png("flowchart TD\nA --> B")
+
+        self.assertFalse(result.success)
+        self.assertIn("Obsidian companion bridge", result.error or "")
+        self.assertNotIn("mmdc", result.error or "")
+
+    def test_mermaid_renderer_uses_bridge_when_available(self):
+        output_dir = Path(tempfile.mkdtemp())
+        output_png = output_dir / "rendered.png"
+        output_png.write_bytes(b"png")
+
+        class StubBridge:
+            def render_mermaid(self, mermaid_content, diagram_type, output_name=None):
+                return MermaidBridgeResult(
+                    png_path=output_png,
+                    width=320,
+                    height=240,
+                )
+
+        renderer = MermaidRenderer(bridge=StubBridge())
+
+        result = renderer.render_mermaid_to_png("flowchart TD\nA --> B")
+
+        self.assertTrue(result.success)
+        self.assertEqual(result.images[0]["png_path"], str(output_png))
+        self.assertEqual(result.images[0]["width"], 320)
+        self.assertEqual(result.images[0]["height"], 240)
 
 
 class TestConverter(unittest.TestCase):
