@@ -110,3 +110,121 @@
 .obshare-cli-empty {
   color: var(--text-muted);
 }
+
+.obshare-cli-progress-modal .modal {
+  max-width: 640px;
+  border-radius: 24px;
+  padding: 0;
+  background:
+    radial-gradient(circle at top left, rgba(120, 200, 160, 0.16), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 248, 0.98));
+  box-shadow: 0 28px 80px rgba(20, 35, 25, 0.18);
+}
+
+.obshare-cli-progress-modal .modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 1.6rem 1.8rem 0;
+}
+
+.obshare-cli-progress-modal .modal-close-button {
+  display: none;
+}
+
+.obshare-cli-progress-modal__content {
+  padding: 0 1.8rem 1.8rem;
+}
+
+.obshare-cli-progress-modal__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.85rem;
+  padding: 1.2rem 0 0.4rem;
+}
+
+.obshare-cli-progress-modal__message {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  min-height: 1.6rem;
+}
+
+.obshare-cli-progress-modal__percent {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.obshare-cli-progress-modal__track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(110, 180, 140, 0.26);
+  overflow: hidden;
+}
+
+.obshare-cli-progress-modal__fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #49a96f, #67c887);
+  transition: width 180ms ease;
+}
+
+.obshare-cli-progress-modal__spinner-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 72px;
+}
+
+.obshare-cli-progress-modal__spinner {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 4px solid rgba(73, 169, 111, 0.16);
+  border-top-color: #49a96f;
+  animation: obshare-cli-spin 0.85s linear infinite;
+}
+
+.obshare-cli-progress-modal__command-title {
+  color: var(--text-faint);
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+}
+
+.obshare-cli-progress-modal__command-value {
+  width: 100%;
+  word-break: break-word;
+  border-radius: 14px;
+  background: rgba(40, 70, 55, 0.06);
+  color: var(--text-normal);
+  padding: 0.9rem 1rem;
+  font-family: var(--font-monospace);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.obshare-cli-progress-modal__caution {
+  margin-top: 0.2rem;
+  color: #49a96f;
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+
+.obshare-cli-progress-modal .is-hidden {
+  display: none;
+}
+
+@keyframes obshare-cli-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

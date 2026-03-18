@@ -1,4 +1,5 @@
 const {
+  Modal,
   Plugin,
   Notice,
   MarkdownRenderer,
@@ -199,6 +200,38 @@ const MESSAGES = {
     "history.failed": "读取共享历史失败: {error}",
     "bridge.notConfigured": "尚未配置 Bridge 目录。",
     "bridge.noPending": "当前没有待处理的渲染请求。",
+    "progress.caution": "请保持窗口开启，不要中断当前任务。",
+    "progress.command.title": "正在执行 CLI 命令",
+    "progress.command.message": "命令执行中，请稍候...",
+    "progress.command.label": "当前命令",
+    "progress.environment.title": "正在检测运行环境",
+    "progress.environment.platform": "正在检测当前运行平台...",
+    "progress.environment.conda": "正在检测 conda 可执行文件...",
+    "progress.environment.condaEnv": "正在检测 conda 环境 obsd...",
+    "progress.environment.python": "正在检测 Python 解释器...",
+    "progress.environment.pip": "正在检测 pip 可用性...",
+    "progress.environment.obsidianCli": "正在检测 Obsidian CLI...",
+    "progress.environment.obshareCli": "正在检测 obshare-cli...",
+    "progress.environment.save": "正在保存环境检测结果...",
+    "progress.install.title": "正在执行安装命令",
+    "progress.install.prepare": "正在准备安装命令...",
+    "progress.install.execute": "正在执行安装或升级，请稍候...",
+    "progress.install.refresh": "正在刷新环境状态...",
+    "progress.install.save": "正在保存安装结果...",
+    "progress.install.complete": "安装任务已完成，正在收尾...",
+    "progress.upload.load.title": "正在读取共享配置",
+    "progress.upload.load.message": "正在通过 CLI 读取共享配置...",
+    "progress.upload.save.title": "正在保存共享配置",
+    "progress.upload.save.appId": "正在保存 App ID...",
+    "progress.upload.save.appSecret": "正在保存 App Secret...",
+    "progress.upload.save.folderToken": "正在保存 Folder Token...",
+    "progress.upload.save.userId": "正在保存 User ID...",
+    "progress.upload.test.title": "正在测试配置连通性",
+    "progress.upload.test.message": "正在通过 CLI 测试配置连通性...",
+    "progress.docs.delete.title": "正在删除文档",
+    "progress.docs.delete.message": "正在通过 CLI 删除当前文档...",
+    "progress.docs.permission.title": "正在更新文档权限",
+    "progress.docs.permission.message": "正在通过 CLI 更新文档权限...",
   },
   en_us: {
     "shell.title": "obshare-cli",
@@ -377,6 +410,38 @@ const MESSAGES = {
     "history.failed": "Failed to read shared history: {error}",
     "bridge.notConfigured": "Bridge directory is not configured.",
     "bridge.noPending": "No pending render request was found.",
+    "progress.caution": "Keep this window open and do not interrupt the current task.",
+    "progress.command.title": "Running CLI Command",
+    "progress.command.message": "The command is running. Please wait...",
+    "progress.command.label": "Current Command",
+    "progress.environment.title": "Checking Runtime Environment",
+    "progress.environment.platform": "Checking the current platform...",
+    "progress.environment.conda": "Checking the conda executable...",
+    "progress.environment.condaEnv": "Checking the conda env obsd...",
+    "progress.environment.python": "Checking the Python interpreter...",
+    "progress.environment.pip": "Checking pip availability...",
+    "progress.environment.obsidianCli": "Checking Obsidian CLI...",
+    "progress.environment.obshareCli": "Checking obshare-cli...",
+    "progress.environment.save": "Saving the environment detection result...",
+    "progress.install.title": "Running Install Command",
+    "progress.install.prepare": "Preparing the install command...",
+    "progress.install.execute": "Running install or upgrade. Please wait...",
+    "progress.install.refresh": "Refreshing environment status...",
+    "progress.install.save": "Saving install output...",
+    "progress.install.complete": "Install task finished. Cleaning up...",
+    "progress.upload.load.title": "Loading Shared Configuration",
+    "progress.upload.load.message": "Reading shared configuration through the CLI...",
+    "progress.upload.save.title": "Saving Shared Configuration",
+    "progress.upload.save.appId": "Saving App ID...",
+    "progress.upload.save.appSecret": "Saving App Secret...",
+    "progress.upload.save.folderToken": "Saving Folder Token...",
+    "progress.upload.save.userId": "Saving User ID...",
+    "progress.upload.test.title": "Testing Configuration Connectivity",
+    "progress.upload.test.message": "Testing configuration connectivity through the CLI...",
+    "progress.docs.delete.title": "Deleting Document",
+    "progress.docs.delete.message": "Deleting the current document through the CLI...",
+    "progress.docs.permission.title": "Updating Document Permissions",
+    "progress.docs.permission.message": "Updating document permissions through the CLI...",
   },
 };
 
@@ -412,6 +477,172 @@ const DEFAULT_SETTINGS = {
   historyRecords: [],
   historyStatus: "",
 };
+
+function clampProgressPercent(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  if (value <= 0) {
+    return 0;
+  }
+  if (value >= 100) {
+    return 100;
+  }
+  return Math.floor(value);
+}
+
+function createProgressState({ mode, title, message, percent = null, commandLabel = "" }) {
+  return {
+    mode: mode === "spinner" ? "spinner" : "progress",
+    title: title || "",
+    message: message || "",
+    percent: mode === "spinner" ? null : clampProgressPercent(percent),
+    commandLabel: commandLabel || "",
+  };
+}
+
+function computeProgressPercent(index, total) {
+  if (!total || total <= 0) {
+    return 100;
+  }
+  return clampProgressPercent((index / total) * 100);
+}
+
+function buildUploadConfigProgressPlan(draft) {
+  const steps = [
+    { key: "appId", value: draft.appId, args: ["config", "set-app-id", draft.appId] },
+    { key: "appSecret", value: draft.appSecret, args: ["config", "set-app-secret", draft.appSecret] },
+    { key: "folderToken", value: draft.folderToken, args: ["config", "set-folder", draft.folderToken] },
+    { key: "userId", value: draft.userId, args: ["config", "set-user-id", draft.userId] },
+  ].filter((step) => step.value);
+
+  return steps.map((step, index) => ({
+    ...step,
+    percent: computeProgressPercent(index + 1, steps.length),
+  }));
+}
+
+function buildEnvironmentRefreshSteps() {
+  const keys = ["platform", "conda", "condaEnv", "python", "pip", "obsidianCli", "obshareCli", "save"];
+  return keys.map((key, index) => ({
+    key,
+    percent: computeProgressPercent(index + 1, keys.length),
+  }));
+}
+
+function buildInstallProgressSteps() {
+  const keys = ["prepare", "execute", "refresh", "save", "complete"];
+  return keys.map((key, index) => ({
+    key,
+    percent: computeProgressPercent(index + 1, keys.length),
+  }));
+}
+
+function shouldUseSpinnerForCliCommand(command) {
+  if (!Array.isArray(command) || command.length < 5) {
+    return false;
+  }
+  const executableName = path.basename(command[0]).toLowerCase();
+  return (
+    (executableName === "conda" || executableName === "conda.exe") &&
+    command[1] === "run" &&
+    command[2] === "-n" &&
+    command[3] === "obsd" &&
+    command[4] === "obshare-cli"
+  );
+}
+
+class ObShareProgressModal extends Modal {
+  constructor(app, plugin, initialState) {
+    super(app);
+    this.plugin = plugin;
+    this.locked = true;
+    this.state = createProgressState(initialState || {});
+    this.bodyEl = null;
+    this.messageEl = null;
+    this.percentEl = null;
+    this.progressTrackEl = null;
+    this.progressFillEl = null;
+    this.spinnerWrapEl = null;
+    this.commandLabelTitleEl = null;
+    this.commandLabelValueEl = null;
+    this.cautionEl = null;
+  }
+
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    modalEl.addClass("obshare-cli-progress-modal");
+    contentEl.empty();
+    contentEl.addClass("obshare-cli-progress-modal__content");
+
+    this.titleEl.setText(this.state.title);
+    this.bodyEl = contentEl.createDiv({ cls: "obshare-cli-progress-modal__body" });
+    this.messageEl = this.bodyEl.createEl("div", { cls: "obshare-cli-progress-modal__message" });
+    this.percentEl = this.bodyEl.createEl("div", { cls: "obshare-cli-progress-modal__percent" });
+    this.progressTrackEl = this.bodyEl.createDiv({ cls: "obshare-cli-progress-modal__track" });
+    this.progressFillEl = this.progressTrackEl.createDiv({ cls: "obshare-cli-progress-modal__fill" });
+    this.spinnerWrapEl = this.bodyEl.createDiv({ cls: "obshare-cli-progress-modal__spinner-wrap" });
+    this.spinnerWrapEl.createDiv({ cls: "obshare-cli-progress-modal__spinner" });
+    this.commandLabelTitleEl = this.bodyEl.createEl("div", { cls: "obshare-cli-progress-modal__command-title" });
+    this.commandLabelValueEl = this.bodyEl.createEl("div", { cls: "obshare-cli-progress-modal__command-value" });
+    this.cautionEl = this.bodyEl.createEl("div", {
+      cls: "obshare-cli-progress-modal__caution",
+      text: this.plugin.t("progress.caution"),
+    });
+
+    this.render();
+  }
+
+  onClose() {
+    this.contentEl.empty();
+    this.modalEl.removeClass("obshare-cli-progress-modal");
+  }
+
+  close() {
+    if (this.locked) {
+      return;
+    }
+    super.close();
+  }
+
+  release() {
+    this.locked = false;
+  }
+
+  update(nextState) {
+    this.state = createProgressState({
+      ...this.state,
+      ...nextState,
+    });
+    this.render();
+  }
+
+  render() {
+    if (!this.bodyEl) {
+      return;
+    }
+
+    this.titleEl.setText(this.state.title);
+    this.messageEl.setText(this.state.message || "");
+
+    const isSpinner = this.state.mode === "spinner";
+    this.spinnerWrapEl.toggleClass("is-hidden", !isSpinner);
+    this.percentEl.toggleClass("is-hidden", isSpinner);
+    this.progressTrackEl.toggleClass("is-hidden", isSpinner);
+
+    if (!isSpinner) {
+      const percent = Number.isFinite(this.state.percent) ? this.state.percent : 0;
+      this.percentEl.setText(`${percent}%`);
+      this.progressFillEl.style.width = `${percent}%`;
+    }
+
+    const hasCommandLabel = Boolean(this.state.commandLabel);
+    this.commandLabelTitleEl.toggleClass("is-hidden", !hasCommandLabel);
+    this.commandLabelValueEl.toggleClass("is-hidden", !hasCommandLabel);
+    this.commandLabelTitleEl.setText(this.plugin.t("progress.command.label"));
+    this.commandLabelValueEl.setText(this.state.commandLabel || "");
+  }
+}
 
 class ObSharePluginSettingTab extends PluginSettingTab {
   constructor(app, plugin) {
@@ -1141,39 +1372,169 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  detectEnvironmentStatus() {
-    const osStatus = this.detectPlatform();
-    const conda = this.detectConda();
-    const condaEnv = this.detectCondaEnv(conda.path);
-    const python = this.detectPython();
-    const pip = this.detectPip(python.path);
-    const obsidianCli = this.detectObsidianCli();
-    const obshareCli = this.detectObshareCli({ conda, condaEnv, python });
+  async waitForUiFrame() {
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.setTimeout(resolve, 0);
+      });
+    });
+  }
+
+  async withProgressDialog(initialState, runner) {
+    const modal = new ObShareProgressModal(this.app, this, initialState);
+    modal.open();
+    await this.waitForUiFrame();
+
+    const update = async (nextState) => {
+      modal.update(nextState);
+      await this.waitForUiFrame();
+    };
+
+    try {
+      const result = await runner({ update, modal });
+      modal.release();
+      modal.close();
+      return result;
+    } catch (error) {
+      modal.release();
+      modal.close();
+      throw error;
+    }
+  }
+
+  environmentProgressMessage(key) {
+    const mapping = {
+      platform: "progress.environment.platform",
+      conda: "progress.environment.conda",
+      condaEnv: "progress.environment.condaEnv",
+      python: "progress.environment.python",
+      pip: "progress.environment.pip",
+      obsidianCli: "progress.environment.obsidianCli",
+      obshareCli: "progress.environment.obshareCli",
+      save: "progress.environment.save",
+    };
+    return this.t(mapping[key] || "progress.command.message");
+  }
+
+  installProgressMessage(key) {
+    const mapping = {
+      prepare: "progress.install.prepare",
+      execute: "progress.install.execute",
+      refresh: "progress.install.refresh",
+      save: "progress.install.save",
+      complete: "progress.install.complete",
+    };
+    return this.t(mapping[key] || "progress.command.message");
+  }
+
+  uploadSaveProgressMessage(key) {
+    const mapping = {
+      appId: "progress.upload.save.appId",
+      appSecret: "progress.upload.save.appSecret",
+      folderToken: "progress.upload.save.folderToken",
+      userId: "progress.upload.save.userId",
+    };
+    return this.t(mapping[key] || "progress.command.message");
+  }
+
+  async collectEnvironmentStatus(updateProgress = null) {
+    const status = {};
+    const steps = buildEnvironmentRefreshSteps().filter((step) => step.key !== "save");
+
+    for (const step of steps) {
+      if (updateProgress) {
+        await updateProgress({
+          message: this.environmentProgressMessage(step.key),
+          percent: step.percent,
+          commandLabel: "",
+        });
+      }
+
+      switch (step.key) {
+        case "platform":
+          status.os = this.detectPlatform();
+          break;
+        case "conda":
+          status.conda = await this.detectConda();
+          break;
+        case "condaEnv":
+          status.condaEnv = await this.detectCondaEnv(status.conda ? status.conda.path : "");
+          break;
+        case "python":
+          status.python = await this.detectPython();
+          break;
+        case "pip":
+          status.pip = await this.detectPip(status.python ? status.python.path : "");
+          break;
+        case "obsidianCli":
+          status.obsidianCli = await this.detectObsidianCli();
+          break;
+        case "obshareCli":
+          status.obshareCli = await this.detectObshareCli({
+            conda: status.conda,
+            condaEnv: status.condaEnv,
+            python: status.python,
+          });
+          break;
+        default:
+          break;
+      }
+    }
 
     return {
-      os: osStatus,
-      conda,
-      condaEnv,
-      python,
-      pip,
-      obsidianCli,
-      obshareCli,
+      os: status.os || this.detectPlatform(),
+      conda: status.conda,
+      condaEnv: status.condaEnv,
+      python: status.python,
+      pip: status.pip,
+      obsidianCli: status.obsidianCli,
+      obshareCli: status.obshareCli,
     };
   }
 
-  async refreshEnvironmentStatus() {
-    this.settings.lastEnvironmentStatus = this.detectEnvironmentStatus();
-    if (this.settings.lastEnvironmentStatus.conda.path) {
-      this.settings.condaExecutable = this.settings.lastEnvironmentStatus.conda.path;
+  async refreshEnvironmentStatus(options = {}) {
+    const { showProgress = true, skipNotice = false, updateProgress = null } = options;
+    const saveStep = buildEnvironmentRefreshSteps().find((step) => step.key === "save");
+
+    const runRefresh = async (progressUpdater) => {
+      this.settings.lastEnvironmentStatus = await this.collectEnvironmentStatus(progressUpdater);
+      if (progressUpdater && saveStep) {
+        await progressUpdater({
+          message: this.environmentProgressMessage("save"),
+          percent: saveStep.percent,
+          commandLabel: "",
+        });
+      }
+      if (this.settings.lastEnvironmentStatus.conda.path) {
+        this.settings.condaExecutable = this.settings.lastEnvironmentStatus.conda.path;
+      }
+      if (this.settings.lastEnvironmentStatus.condaEnv.pythonPath) {
+        this.settings.condaPythonExecutable = this.settings.lastEnvironmentStatus.condaEnv.pythonPath;
+      }
+      if (this.settings.lastEnvironmentStatus.python.path) {
+        this.settings.boundPythonExecutable = this.settings.lastEnvironmentStatus.python.path;
+      }
+      await this.saveSettings();
+      return this.settings.lastEnvironmentStatus;
+    };
+
+    const initialStep = buildEnvironmentRefreshSteps()[0] || { key: "platform", percent: 0 };
+    const status = showProgress
+      ? await this.withProgressDialog(
+          createProgressState({
+            mode: "progress",
+            title: this.t("progress.environment.title"),
+            message: this.environmentProgressMessage(initialStep.key),
+            percent: 0,
+          }),
+          async ({ update }) => runRefresh(update)
+        )
+      : await runRefresh(updateProgress);
+
+    if (!skipNotice) {
+      new Notice(this.t("notice.envRefreshed"));
     }
-    if (this.settings.lastEnvironmentStatus.condaEnv.pythonPath) {
-      this.settings.condaPythonExecutable = this.settings.lastEnvironmentStatus.condaEnv.pythonPath;
-    }
-    if (this.settings.lastEnvironmentStatus.python.path) {
-      this.settings.boundPythonExecutable = this.settings.lastEnvironmentStatus.python.path;
-    }
-    await this.saveSettings();
-    new Notice(this.t("notice.envRefreshed"));
+    return status;
   }
 
   detectPlatform() {
@@ -1199,10 +1560,10 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  detectConda() {
+  async detectConda() {
     const candidates = [this.settings.condaExecutable, "conda"].filter(Boolean);
     for (const candidate of candidates) {
-      const result = this.runCommand(candidate, ["--version"]);
+      const result = await this.runCommandAsync(candidate, ["--version"]);
       if (result.ok) {
         return {
           ok: true,
@@ -1221,7 +1582,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  detectCondaEnv(condaPath) {
+  async detectCondaEnv(condaPath) {
     if (!condaPath) {
       return {
         ok: false,
@@ -1232,7 +1593,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
       };
     }
 
-    const result = this.runCommand(condaPath, ["env", "list", "--json"]);
+    const result = await this.runCommandAsync(condaPath, ["env", "list", "--json"]);
     if (result.ok) {
       try {
         const parsed = JSON.parse(result.output || "{}");
@@ -1262,14 +1623,14 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  detectPython() {
+  async detectPython() {
     const candidates = process.platform === "win32"
       ? ["py", "python", "python3"]
       : [this.settings.boundPythonExecutable, "python3", "python"].filter(Boolean);
 
     for (const candidate of candidates) {
       const args = candidate === "py" ? ["-3", "--version"] : ["--version"];
-      const result = this.runCommand(candidate, args);
+      const result = await this.runCommandAsync(candidate, args);
       if (result.ok) {
         return {
           ok: true,
@@ -1288,10 +1649,10 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  detectPip(pythonPath) {
+  async detectPip(pythonPath) {
     if (pythonPath) {
       const args = pythonPath === "py" ? ["-3", "-m", "pip", "--version"] : ["-m", "pip", "--version"];
-      const result = this.runCommand(pythonPath, args);
+      const result = await this.runCommandAsync(pythonPath, args);
       if (result.ok) {
         return {
           ok: true,
@@ -1310,9 +1671,9 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  detectObsidianCli() {
+  async detectObsidianCli() {
     const candidates = process.platform === "win32" ? ["obsidian", "Obsidian"] : ["obsidian"];
-    const resolved = this.resolveCommandPath(candidates);
+    const resolved = await this.resolveCommandPath(candidates);
     if (!resolved.ok) {
       return {
         ok: false,
@@ -1333,9 +1694,9 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  detectObshareCli(status) {
+  async detectObshareCli(status) {
     const command = this.buildCliVersionCommand();
-    const result = this.runCommand(command[0], command.slice(1));
+    const result = await this.runCommandAsync(command[0], command.slice(1));
     if (result.ok) {
       return {
         ok: true,
@@ -1359,35 +1720,80 @@ module.exports = class ObShareCliPlugin extends Plugin {
     };
   }
 
-  runCommand(command, args) {
-    try {
-      const completed = childProcess.spawnSync(command, args, {
-        encoding: "utf8",
-        shell: process.platform === "win32",
-      });
-      const output = (completed.stdout || completed.stderr || "").trim();
-      if (completed.error || completed.status !== 0) {
-        return {
+  async runCommandAsync(command, args, spawnOptions = {}) {
+    return await new Promise((resolve) => {
+      let stdout = "";
+      let stderr = "";
+      let settled = false;
+
+      const finish = (result) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve(result);
+      };
+
+      let child = null;
+      try {
+        child = childProcess.spawn(command, args, {
+          shell: process.platform === "win32",
+          windowsHide: true,
+          ...spawnOptions,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        finish({
           ok: false,
-          output,
-        };
+          status: 1,
+          stdout: "",
+          stderr: message,
+          output: message,
+        });
+        return;
       }
-      return {
-        ok: true,
-        output,
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        output: error instanceof Error ? error.message : String(error),
-      };
-    }
+
+      if (child.stdout) {
+        child.stdout.on("data", (chunk) => {
+          stdout += String(chunk);
+        });
+      }
+      if (child.stderr) {
+        child.stderr.on("data", (chunk) => {
+          stderr += String(chunk);
+        });
+      }
+
+      child.on("error", (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        finish({
+          ok: false,
+          status: 1,
+          stdout: stdout.trim(),
+          stderr: [stderr.trim(), message].filter(Boolean).join("\n"),
+          output: [stdout.trim(), stderr.trim(), message].filter(Boolean).join("\n").trim(),
+        });
+      });
+
+      child.on("close", (code) => {
+        const trimmedStdout = stdout.trim();
+        const trimmedStderr = stderr.trim();
+        const output = [trimmedStdout, trimmedStderr].filter(Boolean).join("\n").trim();
+        finish({
+          ok: code === 0,
+          status: code == null ? 1 : code,
+          stdout: trimmedStdout,
+          stderr: trimmedStderr,
+          output,
+        });
+      });
+    });
   }
 
-  resolveCommandPath(candidates) {
+  async resolveCommandPath(candidates) {
     const resolver = process.platform === "win32" ? "where" : "which";
     for (const candidate of candidates.filter(Boolean)) {
-      const result = this.runCommand(resolver, [candidate]);
+      const result = await this.runCommandAsync(resolver, [candidate]);
       if (!result.ok || !result.output) {
         continue;
       }
@@ -1437,16 +1843,74 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
   async executeInstallCommand(command) {
     this.settings.lastInstallCommand = command;
+    const installSteps = buildInstallProgressSteps();
+    const getInstallStep = (key) => installSteps.find((step) => step.key === key);
     try {
-      const result = await this.runShellCommand(command);
-      this.settings.lastInstallOutput = result.output || this.t("status.lastInstallSuccess");
-      await this.refreshEnvironmentStatus();
+      await this.withProgressDialog(
+        createProgressState({
+          mode: "progress",
+          title: this.t("progress.install.title"),
+          message: this.installProgressMessage("prepare"),
+          percent: 0,
+        }),
+        async ({ update }) => {
+          const prepareStep = getInstallStep("prepare");
+          if (prepareStep) {
+            await update({
+              message: this.installProgressMessage("prepare"),
+              percent: prepareStep.percent,
+              commandLabel: "",
+            });
+          }
+
+          const executeStep = getInstallStep("execute");
+          if (executeStep) {
+            await update({
+              message: this.installProgressMessage("execute"),
+              percent: executeStep.percent,
+              commandLabel: command,
+            });
+          }
+
+          const result = await this.runShellCommand(command);
+          this.settings.lastInstallOutput = result.output || this.t("status.lastInstallSuccess");
+
+          const refreshStep = getInstallStep("refresh");
+          if (refreshStep) {
+            await update({
+              message: this.installProgressMessage("refresh"),
+              percent: refreshStep.percent,
+              commandLabel: "",
+            });
+          }
+          await this.refreshEnvironmentStatus({ showProgress: false, skipNotice: true });
+
+          const saveStep = getInstallStep("save");
+          if (saveStep) {
+            await update({
+              message: this.installProgressMessage("save"),
+              percent: saveStep.percent,
+              commandLabel: "",
+            });
+          }
+          await this.saveSettings();
+
+          const completeStep = getInstallStep("complete");
+          if (completeStep) {
+            await update({
+              message: this.installProgressMessage("complete"),
+              percent: completeStep.percent,
+              commandLabel: "",
+            });
+          }
+        }
+      );
       new Notice(this.t("notice.installDone"));
     } catch (error) {
       this.settings.lastInstallOutput = error instanceof Error ? error.message : String(error);
+      await this.saveSettings();
       new Notice(this.t("notice.installFailed"));
     }
-    await this.saveSettings();
   }
 
   async copyText(text) {
@@ -1560,15 +2024,12 @@ module.exports = class ObShareCliPlugin extends Plugin {
     return [...this.buildCliBaseCommand(), "--version"];
   }
 
-  async runCliJson(args) {
+  async runCliJson(args, options = {}) {
     const command = this.buildCliCommand(args);
-    return await new Promise((resolve) => {
-      const completed = childProcess.spawnSync(command[0], command.slice(1), {
-        encoding: "utf8",
-        shell: process.platform === "win32",
-      });
-      const stdout = (completed.stdout || "").trim();
-      const stderr = (completed.stderr || "").trim();
+    const execute = async () => {
+      const completed = await this.runCommandAsync(command[0], command.slice(1));
+      const stdout = completed.stdout || "";
+      const stderr = completed.stderr || "";
       let data = null;
       if (stdout) {
         try {
@@ -1577,19 +2038,36 @@ module.exports = class ObShareCliPlugin extends Plugin {
           data = null;
         }
       }
-      resolve({
-        ok: completed.status === 0,
+      return {
+        ok: completed.ok,
         command: command.join(" "),
         exitCode: completed.status || 0,
         stdout,
         stderr,
         data,
-      });
-    });
+      };
+    };
+
+    if (options.showProgress === false || !shouldUseSpinnerForCliCommand(command)) {
+      return await execute();
+    }
+
+    return await this.withProgressDialog(
+      createProgressState({
+        mode: "spinner",
+        title: options.title || this.t("progress.command.title"),
+        message: options.message || this.t("progress.command.message"),
+        commandLabel: command.join(" "),
+      }),
+      async () => execute()
+    );
   }
 
   async loadUploadConfigDraft() {
-    const result = await this.runCliJson(["config", "export-runtime"]);
+    const result = await this.runCliJson(["config", "export-runtime"], {
+      title: this.t("progress.upload.load.title"),
+      message: this.t("progress.upload.load.message"),
+    });
     if (result.ok && result.data) {
       this.settings.uploadConfigDraft = {
         appId: result.data.app_id || "",
@@ -1607,26 +2085,45 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
   async saveUploadConfigDraft() {
     const draft = this.settings.uploadConfigDraft;
-    const operations = [
-      { value: draft.appId, skip: !draft.appId, args: ["config", "set-app-id", draft.appId] },
-      { value: draft.appSecret, skip: !draft.appSecret, args: ["config", "set-app-secret", draft.appSecret] },
-      { value: draft.folderToken, skip: !draft.folderToken, args: ["config", "set-folder", draft.folderToken] },
-      { value: draft.userId, skip: !draft.userId, args: ["config", "set-user-id", draft.userId] },
-    ];
-
+    const operations = buildUploadConfigProgressPlan(draft);
     const outputs = [];
-    for (const operation of operations) {
-      if (operation.skip) {
-        continue;
-      }
-      const result = await this.runCliJson(operation.args);
-      outputs.push(`${result.command}\n${result.stdout || result.stderr || ""}`.trim());
-      if (!result.ok) {
-        this.settings.uploadConfigStatus = outputs.join("\n\n");
-        await this.saveSettings();
-        new Notice(this.t("notice.connectivityFailed"));
-        return;
-      }
+    if (!operations.length) {
+      this.settings.uploadConfigStatus = this.t("upload.noSaveAction");
+      await this.saveSettings();
+      return;
+    }
+
+    try {
+      await this.withProgressDialog(
+        createProgressState({
+          mode: "progress",
+          title: this.t("progress.upload.save.title"),
+          message: this.uploadSaveProgressMessage(operations[0].key),
+          percent: 0,
+        }),
+        async ({ update }) => {
+          for (const operation of operations) {
+            await update({
+              message: this.uploadSaveProgressMessage(operation.key),
+              percent: operation.percent,
+              commandLabel: "",
+            });
+
+            const result = await this.runCliJson(operation.args, { showProgress: false });
+            outputs.push(`${result.command}\n${result.stdout || result.stderr || ""}`.trim());
+            if (!result.ok) {
+              const error = new Error("upload-config-save-failed");
+              error.result = result;
+              throw error;
+            }
+          }
+        }
+      );
+    } catch (error) {
+      this.settings.uploadConfigStatus = outputs.join("\n\n");
+      await this.saveSettings();
+      new Notice(this.t("notice.connectivityFailed"));
+      return;
     }
 
     if (!outputs.length) {
@@ -1639,7 +2136,10 @@ module.exports = class ObShareCliPlugin extends Plugin {
   }
 
   async testUploadConfig() {
-    const result = await this.runCliJson(["config", "test"]);
+    const result = await this.runCliJson(["config", "test"], {
+      title: this.t("progress.upload.test.title"),
+      message: this.t("progress.upload.test.message"),
+    });
     this.settings.uploadConfigStatus = [result.command, result.stdout || result.stderr || ""]
       .filter(Boolean)
       .join("\n");
@@ -1692,7 +2192,10 @@ module.exports = class ObShareCliPlugin extends Plugin {
   }
 
   async deleteDocument(token) {
-    const result = await this.runCliJson(["delete", token]);
+    const result = await this.runCliJson(["delete", token], {
+      title: this.t("progress.docs.delete.title"),
+      message: this.t("progress.docs.delete.message"),
+    });
     this.settings.historyStatus = [result.command, result.stdout || result.stderr || ""]
       .filter(Boolean)
       .join("\n");
@@ -1712,7 +2215,10 @@ module.exports = class ObShareCliPlugin extends Plugin {
       args.push("--allow-download");
     }
 
-    const result = await this.runCliJson(args);
+    const result = await this.runCliJson(args, {
+      title: this.t("progress.docs.permission.title"),
+      message: this.t("progress.docs.permission.message"),
+    });
     this.settings.historyStatus = [result.command, result.stdout || result.stderr || ""]
       .filter(Boolean)
       .join("\n");
