@@ -13,9 +13,15 @@ from datetime import datetime
 from typing import Optional
 
 from obshare_cli import __version__
-from obshare_cli.core.config import ConfigManager, ObShareConfig
+from obshare_cli.core.config import (
+    ConfigManager,
+    DEFAULT_OBSIDIAN_RENDER_COMMAND_ID,
+    ObShareConfig,
+)
 from obshare_cli.core.api_client import FeishuApiClient
+from obshare_cli.core.obsidian_bridge import ObsidianMermaidBridge
 from obshare_cli.core.history import HistoryManager
+from obshare_cli.utils.mermaid import MermaidRenderer
 
 
 # Global options context
@@ -29,6 +35,24 @@ def cli(ctx, json_output, debug):
     ctx.ensure_object(dict)
     ctx.obj['json'] = json_output
     ctx.obj['debug'] = debug
+
+
+def _build_mermaid_renderer(config: ObShareConfig) -> MermaidRenderer:
+    """Build the configured Mermaid renderer backend."""
+    if (
+        config.obsidian_cli_command
+        and config.obsidian_bridge_dir
+    ):
+        bridge = ObsidianMermaidBridge(
+            cli_command=[config.obsidian_cli_command],
+            bridge_dir=Path(config.obsidian_bridge_dir),
+            command_id=(
+                config.obsidian_render_command_id
+                or DEFAULT_OBSIDIAN_RENDER_COMMAND_ID
+            ),
+        )
+        return MermaidRenderer(bridge=bridge)
+    return MermaidRenderer()
 
 
 # Config commands group
@@ -119,6 +143,68 @@ def set_folder(ctx, folder_token):
         sys.exit(1)
 
 
+@config.command('set-obsidian-cli')
+@click.argument('obsidian_cli_command')
+@click.pass_context
+def set_obsidian_cli(ctx, obsidian_cli_command):
+    """Set the Obsidian CLI executable or command name."""
+    try:
+        config_manager = ConfigManager()
+        config_manager.update_config(obsidian_cli_command=obsidian_cli_command)
+        if ctx.obj['json']:
+            click.echo(json.dumps({"success": True, "field": "obsidian_cli_command"}))
+        else:
+            click.echo("[OK] Obsidian CLI command has been set")
+    except Exception as e:
+        if ctx.obj['json']:
+            click.echo(json.dumps({"success": False, "error": str(e)}))
+        else:
+            click.echo(f"[ERROR] Error: {e}")
+        sys.exit(1)
+
+
+@config.command('set-obsidian-bridge-dir')
+@click.argument('obsidian_bridge_dir')
+@click.pass_context
+def set_obsidian_bridge_dir(ctx, obsidian_bridge_dir):
+    """Set the shared bridge directory for the Obsidian companion plugin."""
+    try:
+        config_manager = ConfigManager()
+        config_manager.update_config(obsidian_bridge_dir=obsidian_bridge_dir)
+        if ctx.obj['json']:
+            click.echo(json.dumps({"success": True, "field": "obsidian_bridge_dir"}))
+        else:
+            click.echo("[OK] Obsidian bridge directory has been set")
+    except Exception as e:
+        if ctx.obj['json']:
+            click.echo(json.dumps({"success": False, "error": str(e)}))
+        else:
+            click.echo(f"[ERROR] Error: {e}")
+        sys.exit(1)
+
+
+@config.command('set-obsidian-command-id')
+@click.argument('obsidian_render_command_id')
+@click.pass_context
+def set_obsidian_command_id(ctx, obsidian_render_command_id):
+    """Set the Obsidian companion render command ID."""
+    try:
+        config_manager = ConfigManager()
+        config_manager.update_config(
+            obsidian_render_command_id=obsidian_render_command_id
+        )
+        if ctx.obj['json']:
+            click.echo(json.dumps({"success": True, "field": "obsidian_render_command_id"}))
+        else:
+            click.echo("[OK] Obsidian render command ID has been set")
+    except Exception as e:
+        if ctx.obj['json']:
+            click.echo(json.dumps({"success": False, "error": str(e)}))
+        else:
+            click.echo(f"[ERROR] Error: {e}")
+        sys.exit(1)
+
+
 @config.command('show')
 @click.pass_context
 def show_config(ctx):
@@ -133,6 +219,9 @@ def show_config(ctx):
                 "app_secret": "***" if config.app_secret else "",
                 "user_id": config.user_id,
                 "folder_token": config.folder_token[:8] + "..." if config.folder_token else "",
+                "obsidian_cli_command": config.obsidian_cli_command,
+                "obsidian_bridge_dir": config.obsidian_bridge_dir,
+                "obsidian_render_command_id": config.obsidian_render_command_id,
                 "is_complete": config.is_complete()
             }, indent=2))
         else:
@@ -142,6 +231,16 @@ def show_config(ctx):
             click.echo(f"  App Secret: {'***' if config.app_secret else 'Not set'}")
             click.echo(f"  User ID: {config.user_id or 'Not set'}")
             click.echo(f"  Folder Token: {config.folder_token[:8] + '...' if config.folder_token else 'Not set'}")
+            click.echo(
+                f"  Obsidian CLI: {config.obsidian_cli_command or 'Not set'}"
+            )
+            click.echo(
+                f"  Obsidian Bridge Dir: {config.obsidian_bridge_dir or 'Not set'}"
+            )
+            click.echo(
+                "  Obsidian Render Command: "
+                f"{config.obsidian_render_command_id or 'Not set'}"
+            )
             click.echo(f"  Complete: {'[OK]' if config.is_complete() else '[ERROR]'}")
             click.echo()
     except Exception as e:
@@ -167,7 +266,11 @@ def test_connection(ctx):
                 click.echo("[ERROR] Configuration not complete. Please set all required fields.")
             sys.exit(1)
 
-        client = FeishuApiClient(config.app_id, config.app_secret)
+        client = FeishuApiClient(
+            config.app_id,
+            config.app_secret,
+            mermaid_renderer=_build_mermaid_renderer(config),
+        )
         success = client.test_connection()
 
         if ctx.obj['json']:
@@ -257,6 +360,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
             f"{title}.md",
             content,
             config.folder_token,
+            source_path=file_path,
             on_progress=progress_callback
         )
 

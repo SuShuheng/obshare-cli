@@ -12,6 +12,7 @@ from unittest.mock import Mock
 
 from obshare_cli.core.config import ConfigManager
 from obshare_cli.core.api_client import FeishuApiClient, UploadResult
+from obshare_cli.core.obsidian_bridge import MermaidBridgeResult
 from obshare_cli.core.uploader import DocumentUploader
 from obshare_cli.utils.crypto import CryptoUtils
 from obshare_cli.utils.output import format_upload_result, format_error
@@ -58,7 +59,10 @@ class TestConfig(unittest.TestCase):
             app_id="test_app_id",
             app_secret="test_app_secret",
             user_id="test_user_id",
-            folder_token="test_folder_token"
+            folder_token="test_folder_token",
+            obsidian_cli_command="obsidian",
+            obsidian_bridge_dir="/tmp/obshare-bridge",
+            obsidian_render_command_id="obshare-cli:process-render-request",
         )
 
         # Verify saved
@@ -67,6 +71,12 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(loaded_config.app_secret, "test_app_secret")
         self.assertEqual(loaded_config.user_id, "test_user_id")
         self.assertEqual(loaded_config.folder_token, "test_folder_token")
+        self.assertEqual(loaded_config.obsidian_cli_command, "obsidian")
+        self.assertEqual(loaded_config.obsidian_bridge_dir, "/tmp/obshare-bridge")
+        self.assertEqual(
+            loaded_config.obsidian_render_command_id,
+            "obshare-cli:process-render-request",
+        )
 
     def test_config_not_complete(self):
         """Test incomplete configuration validation"""
@@ -78,6 +88,24 @@ class TestConfig(unittest.TestCase):
         loaded_config = config.load_config()
         # Missing user_id and folder_token
         self.assertFalse(loaded_config.is_complete())
+
+    def test_obsidian_bridge_config_fields_round_trip(self):
+        """Optional Obsidian bridge settings should be persisted and loaded."""
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            obsidian_cli_command="obsidian",
+            obsidian_bridge_dir="/tmp/bridge",
+            obsidian_render_command_id="obshare-cli:process-render-request",
+        )
+
+        loaded_config = config.load_config()
+
+        self.assertEqual(loaded_config.obsidian_cli_command, "obsidian")
+        self.assertEqual(loaded_config.obsidian_bridge_dir, "/tmp/bridge")
+        self.assertEqual(
+            loaded_config.obsidian_render_command_id,
+            "obshare-cli:process-render-request",
+        )
 
 
 class TestConfigEncryption(unittest.TestCase):
@@ -241,6 +269,13 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(history[0]["docToken"], "docx_123")
         self.assertEqual(history[0]["url"], "https://feishu.cn/docx/docx_123")
         self.assertTrue(history[0]["uploadTime"])
+        feishu_client.upload_document.assert_called_once_with(
+            "demo.md",
+            "# Demo\n",
+            "test_folder_token",
+            source_path=markdown_file,
+            on_progress=None,
+        )
 
 
 class TestMermaidRenderer(unittest.TestCase):
@@ -257,6 +292,53 @@ graph TD
 """
         blocks = converter.extract_mermaid_blocks(content)
         self.assertEqual(len(blocks), 1)
+
+    def test_render_mermaid_to_png_fails_without_mmdc(self):
+        """Mermaid renderer should return a structured failure when mmdc is missing."""
+        renderer = MermaidRenderer(executable="/definitely/missing/mmdc")
+
+        result = renderer.render_mermaid_to_png("flowchart TD\nA-->B")
+
+        self.assertFalse(result.success)
+        self.assertIn("Mermaid CLI not installed", result.error)
+
+    def test_render_mermaid_to_png_with_obsidian_bridge(self):
+        """Bridge-backed Mermaid rendering should return PNG metadata."""
+        temp_dir = Path(tempfile.mkdtemp())
+        png_path = temp_dir / "diagram.png"
+        png_path.write_bytes(b"png")
+
+        bridge = Mock()
+        bridge.render_mermaid.return_value = MermaidBridgeResult(
+            png_path=png_path,
+            width=640,
+            height=360,
+        )
+
+        renderer = MermaidRenderer(bridge=bridge)
+        result = renderer.render_mermaid_to_png("flowchart TD\nA-->B")
+
+        self.assertTrue(result.success)
+        self.assertEqual(result.images[0]["base64"], "cG5n")
+        self.assertEqual(result.images[0]["png_path"], str(png_path))
+        self.assertEqual(result.images[0]["width"], 640)
+        self.assertEqual(result.images[0]["height"], 360)
+        bridge.render_mermaid.assert_called_once_with(
+            "flowchart TD\nA-->B",
+            "flowchart",
+            output_name="mermaid-flowchart.png",
+        )
+
+    def test_render_mermaid_to_png_surfaces_bridge_failure(self):
+        """Bridge failures should be returned as structured Mermaid errors."""
+        bridge = Mock()
+        bridge.render_mermaid.side_effect = RuntimeError("bridge boom")
+
+        renderer = MermaidRenderer(bridge=bridge)
+        result = renderer.render_mermaid_to_png("flowchart TD\nA-->B")
+
+        self.assertFalse(result.success)
+        self.assertIn("bridge boom", result.error)
 
 
 if __name__ == "__main__":

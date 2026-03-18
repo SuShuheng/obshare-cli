@@ -11,6 +11,9 @@ from pathlib import Path
 
 import requests
 
+from .media_pipeline import prepare_markdown_for_upload
+from ..utils.mermaid import MermaidRenderer
+
 
 @dataclass
 class UploadResult:
@@ -25,6 +28,7 @@ class FeishuApiClient:
     """Feishu API Client"""
     app_id: str
     app_secret: str
+    mermaid_renderer: Optional[Any] = None
     access_token: Optional[str] = None
     token_expire_time: float = 0
     base_url: str = "https://open.feishu.cn/open-apis"
@@ -191,19 +195,169 @@ class FeishuApiClient:
 
         raise Exception("Import task polling failed: timed out")
 
+    def get_document_blocks(self, document_id: str) -> List[Dict[str, Any]]:
+        """Return the block list for a Feishu docx document."""
+        response = requests.get(
+            f"{self.base_url}/docx/v1/documents/{document_id}/blocks",
+            headers=self._auth_headers(),
+            timeout=30,
+        )
+        payload = self._parse_json_response(response, "document block listing")
+        items = payload.get("data", {}).get("items")
+        if items is None:
+            raise Exception("Document block listing failed: missing items")
+        return items
+
+    def upload_image_material(
+        self,
+        file_name: str,
+        base64_content: str,
+        document_id: str,
+        block_id: str,
+    ) -> str:
+        """Upload an image or GIF into a docx image slot and return its file token."""
+        image_bytes = base64.b64decode(base64_content)
+        response = requests.post(
+            f"{self.base_url}/drive/v1/medias/upload_all",
+            headers={"Authorization": f"Bearer {self.get_access_token()}"},
+            data={
+                "file_name": file_name,
+                "parent_type": "docx_image",
+                "parent_node": block_id,
+                "size": str(len(image_bytes)),
+                "extra": json.dumps({"drive_route_token": document_id}),
+            },
+            files={
+                "file": (
+                    file_name,
+                    image_bytes,
+                    "application/octet-stream",
+                )
+            },
+            timeout=60,
+        )
+        payload = self._parse_json_response(response, "image material upload")
+        file_token = payload.get("data", {}).get("file_token")
+        if not file_token:
+            raise Exception("Image material upload failed: missing file_token")
+        return file_token
+
+    def replace_image_block(
+        self,
+        document_id: str,
+        block_id: str,
+        image_token: str,
+        *,
+        width: int = 800,
+        height: int = 600,
+    ) -> None:
+        """Replace a docx image block with an uploaded media token."""
+        response = requests.patch(
+            (
+                f"{self.base_url}/docx/v1/documents/{document_id}/blocks/"
+                f"{block_id}?document_revision_id=-1"
+            ),
+            headers=self._auth_headers(),
+            json={
+                "replace_image": {
+                    "token": image_token,
+                    "width": width,
+                    "height": height,
+                    "align": 2,
+                }
+            },
+            timeout=30,
+        )
+        self._parse_json_response(response, "image block replacement")
+
+    def backfill_document_media(
+        self,
+        document_id: str,
+        media_items: List[Any],
+        on_progress: Optional[callable] = None,
+    ) -> None:
+        """Upload prepared media items and replace imported docx image blocks."""
+        if not media_items:
+            return
+
+        image_blocks = [
+            block for block in self.get_document_blocks(document_id)
+            if block.get("block_type") == 27
+        ]
+        if len(media_items) != len(image_blocks):
+            raise Exception(
+                "Media backfill failed: "
+                f"{len(media_items)} prepared media items but {len(image_blocks)} image blocks"
+            )
+
+        for media_item, image_block in zip(media_items, image_blocks):
+            if on_progress:
+                on_progress(f"Backfilling media: {media_item.display_name}")
+
+            if media_item.base64_content:
+                base64_content = media_item.base64_content
+            elif media_item.source_path:
+                base64_content = base64.b64encode(
+                    Path(media_item.source_path).read_bytes()
+                ).decode("ascii")
+            else:
+                raise Exception(
+                    f"Media backfill failed: no data source for {media_item.display_name}"
+                )
+
+            image_token = self.upload_image_material(
+                media_item.display_name,
+                base64_content,
+                document_id,
+                image_block["block_id"],
+            )
+
+            if media_item.width and media_item.height:
+                self.replace_image_block(
+                    document_id,
+                    image_block["block_id"],
+                    image_token,
+                    width=media_item.width,
+                    height=media_item.height,
+                )
+            else:
+                self.replace_image_block(
+                    document_id,
+                    image_block["block_id"],
+                    image_token,
+                )
+
     def upload_document(
         self,
         file_name: str,
         content: str,
         folder_token: str,
+        source_path: Optional[Path] = None,
         on_progress: Optional[callable] = None
     ) -> UploadResult:
         """Upload a Markdown document to Feishu"""
         temp_file_token: Optional[str] = None
         try:
+            processed_content = content
+            media_items: List[Any] = []
+            if source_path:
+                if on_progress:
+                    on_progress("Preparing local media before upload...")
+                prepared = prepare_markdown_for_upload(
+                    content,
+                    Path(source_path),
+                    self.mermaid_renderer or MermaidRenderer(),
+                )
+                processed_content = prepared.processed_content
+                media_items = prepared.media_items
+
             if on_progress:
                 on_progress("Uploading Markdown file to Feishu drive...")
-            temp_file_token = self.upload_temp_markdown_file(file_name, content, folder_token)
+            temp_file_token = self.upload_temp_markdown_file(
+                file_name,
+                processed_content,
+                folder_token,
+            )
 
             if on_progress:
                 on_progress("Creating import task...")
@@ -213,15 +367,22 @@ class FeishuApiClient:
                 on_progress("Waiting for Feishu import task...")
             result = self.poll_import_task(ticket, on_progress=on_progress)
 
+            if media_items:
+                self.backfill_document_media(
+                    result.token,
+                    media_items,
+                    on_progress=on_progress,
+                )
+
+            return result
+        except Exception as e:
+            raise Exception(f"Upload failed: {e}")
+        finally:
             if temp_file_token:
                 try:
                     self.delete_file(temp_file_token, file_type="file")
                 except Exception:
                     pass
-
-            return result
-        except Exception as e:
-            raise Exception(f"Upload failed: {e}")
 
     def _poll_import_status(
         self,

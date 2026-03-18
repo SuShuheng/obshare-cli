@@ -9,6 +9,9 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass, field, asdict
 
 from ..utils.crypto import CryptoUtils
+from .shared_state import get_obshare_home, get_shared_config_path, get_shared_history_path
+
+DEFAULT_OBSIDIAN_RENDER_COMMAND_ID = "obshare-cli:process-render-request"
 
 
 @dataclass
@@ -18,6 +21,9 @@ class ObShareConfig:
     app_secret: str = ""
     user_id: str = ""
     folder_token: str = ""
+    obsidian_cli_command: str = ""
+    obsidian_bridge_dir: str = ""
+    obsidian_render_command_id: str = DEFAULT_OBSIDIAN_RENDER_COMMAND_ID
 
     def is_complete(self) -> bool:
         """Check if all required fields are set"""
@@ -39,7 +45,19 @@ class ObShareConfig:
             app_id=data.get('appId', data.get('app_id', '')),
             app_secret=data.get('appSecret', data.get('app_secret', '')),
             user_id=data.get('userId', data.get('user_id', '')),
-            folder_token=data.get('folderToken', data.get('folder_token', ''))
+            folder_token=data.get('folderToken', data.get('folder_token', '')),
+            obsidian_cli_command=data.get(
+                'obsidianCliCommand',
+                data.get('obsidian_cli_command', '')
+            ),
+            obsidian_bridge_dir=data.get(
+                'obsidianBridgeDir',
+                data.get('obsidian_bridge_dir', '')
+            ),
+            obsidian_render_command_id=data.get(
+                'obsidianRenderCommandId',
+                data.get('obsidian_render_command_id', DEFAULT_OBSIDIAN_RENDER_COMMAND_ID)
+            ),
         )
 
 
@@ -54,17 +72,12 @@ class ConfigManager:
         """Initialize config manager"""
         if config_dir:
             self.config_dir = Path(config_dir)
+            self.config_file = self.config_dir / self.CONFIG_FILE_NAME
+            self.history_file = self.config_dir / self.HISTORY_FILE_NAME
         else:
-            # Use platform-specific config directory
-            if os.name == 'nt':  # Windows
-                base_dir = Path(os.environ.get('USERPROFILE', '~'))
-            else:  # Linux/macOS
-                base_dir = Path.home()
-
-            self.config_dir = base_dir / self.CONFIG_DIR_NAME
-
-        self.config_file = self.config_dir / self.CONFIG_FILE_NAME
-        self.history_file = self.config_dir / self.HISTORY_FILE_NAME
+            self.config_dir = get_obshare_home()
+            self.config_file = get_shared_config_path()
+            self.history_file = get_shared_history_path()
 
         # Ensure config directory exists
         self.config_dir.mkdir(parents=True, exist_ok=True)
@@ -95,7 +108,10 @@ class ConfigManager:
                 'appId': data['app_id'],
                 'appSecret': data['app_secret'],
                 'userId': data['user_id'],
-                'folderToken': data['folder_token']
+                'folderToken': data['folder_token'],
+                'obsidianCliCommand': data['obsidian_cli_command'],
+                'obsidianBridgeDir': data['obsidian_bridge_dir'],
+                'obsidianRenderCommandId': data['obsidian_render_command_id'],
             }
 
             # Encrypt sensitive fields

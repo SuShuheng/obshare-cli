@@ -53,6 +53,7 @@ class DocumentUploader:
                 path.name,
                 content,
                 loaded_config.folder_token,
+                source_path=path,
                 on_progress=self.on_progress,
             )
 
