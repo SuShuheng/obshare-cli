@@ -177,6 +177,39 @@ class TestConfigEncryption(unittest.TestCase):
         self.assertEqual(loaded_config.folder_token, "test_folder_token")
 
 
+class TestUploadCli(unittest.TestCase):
+    """Test upload command behavior."""
+
+    def test_upload_returns_structured_json_error(self):
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            app_id="test_app_id",
+            app_secret="test_app_secret",
+            user_id="test_user_id",
+            folder_token="test_folder_token",
+        )
+
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            note_path = Path("demo.md")
+            note_path.write_text("# demo\n", encoding="utf-8")
+
+            mock_client = Mock()
+            mock_client.upload_document.side_effect = Exception("boom")
+
+            with patch("obshare_cli.cli.ConfigManager", return_value=config), patch(
+                "obshare_cli.cli.FeishuApiClient",
+                return_value=mock_client,
+            ):
+                result = runner.invoke(cli, ["--json", "upload", str(note_path)])
+
+        self.assertEqual(result.exit_code, 1)
+        payload = json.loads(result.output)
+        self.assertFalse(payload["success"])
+        self.assertEqual(payload["error"]["code"], "UPLOAD_FAILED")
+        self.assertIn("boom", payload["error"]["message"])
+
+
 class TestMarkdownConverter(unittest.TestCase):
     """Test Markdown converter"""
 

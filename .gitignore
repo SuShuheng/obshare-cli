@@ -88,3 +88,8 @@ test-*
 # obshare source code
 obshare-source-code/
 obsidian-plugins/tests/
+
+# ！README.md
+*.md
+!README.md
+!README_Zh_CN.md
