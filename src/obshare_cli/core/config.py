@@ -25,10 +25,15 @@ class ObShareConfig:
     obsidian_bridge_dir: str = ""
     obsidian_render_command_id: str = DEFAULT_OBSIDIAN_RENDER_COMMAND_ID
     install_mode: str = ""
+    runtime_type: str = ""
+    execution_mode: str = ""
     bound_python_executable: str = ""
     bound_virtual_env_path: str = ""
     isolated_env_name: str = "obsd"
     cli_executable_override: str = ""
+    conda_executable: str = ""
+    conda_env_name: str = "obsd"
+    conda_python_executable: str = ""
 
     def is_complete(self) -> bool:
         """Check if all required fields are set"""
@@ -64,6 +69,8 @@ class ObShareConfig:
                 data.get('obsidian_render_command_id', DEFAULT_OBSIDIAN_RENDER_COMMAND_ID)
             ),
             install_mode=data.get('installMode', data.get('install_mode', '')),
+            runtime_type=data.get('runtimeType', data.get('runtime_type', '')),
+            execution_mode=data.get('executionMode', data.get('execution_mode', '')),
             bound_python_executable=data.get(
                 'boundPythonExecutable',
                 data.get('bound_python_executable', '')
@@ -79,6 +86,18 @@ class ObShareConfig:
             cli_executable_override=data.get(
                 'cliExecutableOverride',
                 data.get('cli_executable_override', '')
+            ),
+            conda_executable=data.get(
+                'condaExecutable',
+                data.get('conda_executable', '')
+            ),
+            conda_env_name=data.get(
+                'condaEnvName',
+                data.get('conda_env_name', 'obsd')
+            ),
+            conda_python_executable=data.get(
+                'condaPythonExecutable',
+                data.get('conda_python_executable', '')
             ),
         )
 
@@ -135,10 +154,15 @@ class ConfigManager:
                 'obsidianBridgeDir': data['obsidian_bridge_dir'],
                 'obsidianRenderCommandId': data['obsidian_render_command_id'],
                 'installMode': data['install_mode'],
+                'runtimeType': data['runtime_type'],
+                'executionMode': data['execution_mode'],
                 'boundPythonExecutable': data['bound_python_executable'],
                 'boundVirtualEnvPath': data['bound_virtual_env_path'],
                 'isolatedEnvName': data['isolated_env_name'],
                 'cliExecutableOverride': data['cli_executable_override'],
+                'condaExecutable': data['conda_executable'],
+                'condaEnvName': data['conda_env_name'],
+                'condaPythonExecutable': data['conda_python_executable'],
             }
 
             # Encrypt sensitive fields

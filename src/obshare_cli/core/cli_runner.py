@@ -34,16 +34,53 @@ class ObShareCliRunner:
         python_executable: str = "python3",
         venv_path: Optional[Path] = None,
         cli_executable: Optional[str] = None,
+        runtime_type: str = "",
+        execution_mode: str = "",
+        conda_executable: str = "conda",
+        conda_env_name: str = OBSD_ENV_NAME,
+        conda_python_executable: Optional[str] = None,
     ):
         self.install_mode = install_mode
         self.python_executable = python_executable
         self.venv_path = Path(venv_path) if venv_path else None
         self.cli_executable = cli_executable
+        self.runtime_type = runtime_type
+        self.execution_mode = execution_mode
+        self.conda_executable = conda_executable
+        self.conda_env_name = conda_env_name
+        self.conda_python_executable = conda_python_executable
 
     def build_command(self, args: list[str]) -> list[str]:
         """Build a JSON-first obshare-cli command for the selected runtime."""
         if self.cli_executable:
             return [self.cli_executable, "--json", *args]
+
+        if self.runtime_type == "conda":
+            if self.conda_env_name != OBSD_ENV_NAME:
+                raise ValueError(
+                    f"Conda obshare-cli environments must use the fixed name {OBSD_ENV_NAME}"
+                )
+            if self.execution_mode == "conda-run":
+                return [
+                    self.conda_executable,
+                    "run",
+                    "-n",
+                    self.conda_env_name,
+                    "obshare-cli",
+                    "--json",
+                    *args,
+                ]
+            if self.execution_mode == "conda-python":
+                if not self.conda_python_executable:
+                    raise ValueError("Conda python execution requires a Python executable path")
+                return [
+                    self.conda_python_executable,
+                    "-m",
+                    "obshare_cli",
+                    "--json",
+                    *args,
+                ]
+            raise ValueError(f"Unsupported conda execution mode: {self.execution_mode}")
 
         if self.install_mode == "isolated":
             if not self.venv_path:

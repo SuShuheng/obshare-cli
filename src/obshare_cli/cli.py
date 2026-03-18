@@ -251,6 +251,33 @@ def show_config(ctx):
         sys.exit(1)
 
 
+@config.command('export-runtime')
+@click.pass_context
+def export_runtime_config(ctx):
+    """Export raw shared configuration values for plugin runtime use."""
+    try:
+        config_manager = ConfigManager()
+        config = config_manager.load_config()
+
+        payload = {
+            "app_id": config.app_id,
+            "app_secret": config.app_secret,
+            "user_id": config.user_id,
+            "folder_token": config.folder_token,
+        }
+
+        if ctx.obj['json']:
+            click.echo(json.dumps(payload, indent=2))
+        else:
+            click.echo(json.dumps(payload, indent=2))
+    except Exception as e:
+        if ctx.obj['json']:
+            click.echo(json.dumps({"success": False, "error": str(e)}))
+        else:
+            click.echo(f"[ERROR] Error: {e}")
+        sys.exit(1)
+
+
 @config.command('test')
 @click.pass_context
 def test_connection(ctx):

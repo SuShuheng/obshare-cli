@@ -6,6 +6,13 @@ Its first internal runtime capability is Mermaid rendering inside a real Obsidia
 
 Repository: `https://github.com/SuShuheng/obshare-cli`
 
+Default plugin language: `zh_cn`
+
+Supported plugin languages:
+
+- `zh_cn`
+- `en_us`
+
 ## Plugin Tabs
 
 The plugin shell is organized into four tabs:
@@ -34,14 +41,19 @@ It also persists:
 ## Current Functional Coverage
 
 `Environment Configuration`
-- probes Python, pip, Obsidian CLI, and `obshare-cli`
-- generates install commands for:
-  - system Python
-  - isolated environment `obsd`
+- probes `conda`, `conda env: obsd`, Python, pip, Obsidian CLI, and `obshare-cli`
+- prefers `conda (obsd)` as the recommended runtime
+- supports two conda execution modes:
+  - `conda run -n obsd`
+  - `obsd` Python absolute path with `-m obshare_cli`
+- still supports compatibility paths for:
+  - `venv (obsd)`
+  - `system Python`
 - supports copy and optional direct execution of the generated install command
+- shows Miniconda guidance when `conda` is missing
 
 `Upload Configuration`
-- loads masked shared config values through `obshare-cli --json config show`
+- loads real shared config values through `obshare-cli --json config export-runtime`
 - saves updates through CLI config subcommands
 - imports and exports the shared config file
 - tests connectivity through `obshare-cli --json config test`
@@ -55,6 +67,7 @@ It also persists:
 - shows plugin version
 - shows detected CLI version
 - links to the repository
+- lets the user switch between `zh_cn` and `en_us`
 - provides plugin update guidance
 - generates and can execute the CLI upgrade command for the bound runtime
 

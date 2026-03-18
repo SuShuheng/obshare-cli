@@ -60,6 +60,7 @@
 
 .obshare-cli-status-card__value {
   font-weight: 600;
+  font-size: 1.05em;
   word-break: break-word;
 }
 
@@ -67,6 +68,7 @@
   margin-top: 0.35rem;
   color: var(--text-muted);
   font-size: 0.9em;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 

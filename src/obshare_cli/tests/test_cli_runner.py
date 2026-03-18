@@ -95,3 +95,59 @@ def test_runner_parses_json_success():
 
     assert result.success is True
     assert result.data == {"success": True, "value": 1}
+
+
+def test_runner_builds_conda_run_command():
+    runner = ObShareCliRunner(
+        install_mode="isolated",
+        runtime_type="conda",
+        execution_mode="conda-run",
+        conda_executable="conda",
+        conda_env_name="obsd",
+    )
+
+    command = runner.build_command(["config", "test"])
+
+    assert command == ["conda", "run", "-n", "obsd", "obshare-cli", "--json", "config", "test"]
+
+
+def test_runner_builds_conda_python_command(tmp_path):
+    env_dir = tmp_path / "obsd"
+    env_dir.mkdir()
+    python_path = env_dir / "bin" / "python"
+
+    runner = ObShareCliRunner(
+        install_mode="isolated",
+        runtime_type="conda",
+        execution_mode="conda-python",
+        conda_python_executable=str(python_path),
+        conda_env_name="obsd",
+    )
+
+    command = runner.build_command(["delete", "doc_123"])
+
+    assert command == [
+        str(python_path),
+        "-m",
+        "obshare_cli",
+        "--json",
+        "delete",
+        "doc_123",
+    ]
+
+
+def test_runner_requires_fixed_obsd_name_for_conda_env():
+    runner = ObShareCliRunner(
+        install_mode="isolated",
+        runtime_type="conda",
+        execution_mode="conda-run",
+        conda_executable="conda",
+        conda_env_name="other-env",
+    )
+
+    try:
+        runner.build_command(["config", "test"])
+    except ValueError as exc:
+        assert "obsd" in str(exc)
+    else:
+        raise AssertionError("Expected conda runner to enforce the obsd environment name")

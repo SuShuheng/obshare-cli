@@ -8,8 +8,10 @@ import os
 from pathlib import Path
 import json
 from datetime import datetime
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+from click.testing import CliRunner
 
+from obshare_cli.cli import cli
 from obshare_cli.core.config import ConfigManager
 from obshare_cli.core.api_client import FeishuApiClient, UploadResult
 from obshare_cli.core.obsidian_bridge import MermaidBridgeResult
@@ -131,6 +133,27 @@ class TestConfig(unittest.TestCase):
             loaded_config.cli_executable_override,
             "/Users/test/.virtualenvs/obsd/bin/obshare-cli",
         )
+
+    def test_raw_config_export_returns_real_values(self):
+        """The plugin-facing raw config export should return real shared values."""
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            app_id="real_app_id",
+            app_secret="real_app_secret",
+            user_id="real_user_id",
+            folder_token="real_folder_token",
+        )
+
+        runner = CliRunner()
+        with patch("obshare_cli.cli.ConfigManager", return_value=config):
+            result = runner.invoke(cli, ["--json", "config", "export-runtime"])
+
+        self.assertEqual(result.exit_code, 0)
+        payload = json.loads(result.output)
+        self.assertEqual(payload["app_id"], "real_app_id")
+        self.assertEqual(payload["app_secret"], "real_app_secret")
+        self.assertEqual(payload["user_id"], "real_user_id")
+        self.assertEqual(payload["folder_token"], "real_folder_token")
 
 
 class TestConfigEncryption(unittest.TestCase):
