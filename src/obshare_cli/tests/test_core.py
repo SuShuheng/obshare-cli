@@ -107,6 +107,31 @@ class TestConfig(unittest.TestCase):
             "obshare-cli:process-render-request",
         )
 
+    def test_runtime_binding_fields_round_trip(self):
+        """Plugin runtime binding settings should be persisted and loaded."""
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            install_mode="isolated",
+            bound_python_executable="/usr/bin/python3",
+            bound_virtual_env_path="/Users/test/.virtualenvs/obsd",
+            isolated_env_name="obsd",
+            cli_executable_override="/Users/test/.virtualenvs/obsd/bin/obshare-cli",
+        )
+
+        loaded_config = config.load_config()
+
+        self.assertEqual(loaded_config.install_mode, "isolated")
+        self.assertEqual(loaded_config.bound_python_executable, "/usr/bin/python3")
+        self.assertEqual(
+            loaded_config.bound_virtual_env_path,
+            "/Users/test/.virtualenvs/obsd",
+        )
+        self.assertEqual(loaded_config.isolated_env_name, "obsd")
+        self.assertEqual(
+            loaded_config.cli_executable_override,
+            "/Users/test/.virtualenvs/obsd/bin/obshare-cli",
+        )
+
 
 class TestConfigEncryption(unittest.TestCase):
     """Test configuration encryption"""

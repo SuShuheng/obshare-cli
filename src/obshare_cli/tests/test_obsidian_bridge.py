@@ -10,6 +10,35 @@ from unittest.mock import patch
 from obshare_cli.core.obsidian_bridge import ObsidianMermaidBridge
 
 
+def test_bridge_uses_default_obshare_cli_render_command(tmp_path):
+    bridge = ObsidianMermaidBridge(
+        cli_command=["obsidian"],
+        bridge_dir=tmp_path,
+        poll_interval=0.01,
+        timeout=0.2,
+    )
+
+    def fake_run(cmd, check, capture_output, text):
+        request_path = next(tmp_path.glob("*.request.json"))
+        request_data = json.loads(request_path.read_text(encoding="utf-8"))
+        Path(request_data["outputPngPath"]).write_bytes(b"png-bytes")
+        Path(request_data["resultPath"]).write_text(
+            json.dumps({"status": "success", "pngPath": request_data["outputPngPath"]}),
+            encoding="utf-8",
+        )
+        return CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    with patch("obshare_cli.core.obsidian_bridge.subprocess.run", side_effect=fake_run) as mock_run:
+        bridge.render_mermaid("flowchart TD\nA-->B", "flowchart")
+
+    mock_run.assert_called_once_with(
+        ["obsidian", "command", "id=obshare-cli:process-render-request"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_bridge_writes_request_and_reads_success_result(tmp_path):
     bridge = ObsidianMermaidBridge(
         cli_command=["obsidian"],

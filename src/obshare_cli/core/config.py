@@ -24,6 +24,11 @@ class ObShareConfig:
     obsidian_cli_command: str = ""
     obsidian_bridge_dir: str = ""
     obsidian_render_command_id: str = DEFAULT_OBSIDIAN_RENDER_COMMAND_ID
+    install_mode: str = ""
+    bound_python_executable: str = ""
+    bound_virtual_env_path: str = ""
+    isolated_env_name: str = "obsd"
+    cli_executable_override: str = ""
 
     def is_complete(self) -> bool:
         """Check if all required fields are set"""
@@ -57,6 +62,23 @@ class ObShareConfig:
             obsidian_render_command_id=data.get(
                 'obsidianRenderCommandId',
                 data.get('obsidian_render_command_id', DEFAULT_OBSIDIAN_RENDER_COMMAND_ID)
+            ),
+            install_mode=data.get('installMode', data.get('install_mode', '')),
+            bound_python_executable=data.get(
+                'boundPythonExecutable',
+                data.get('bound_python_executable', '')
+            ),
+            bound_virtual_env_path=data.get(
+                'boundVirtualEnvPath',
+                data.get('bound_virtual_env_path', '')
+            ),
+            isolated_env_name=data.get(
+                'isolatedEnvName',
+                data.get('isolated_env_name', 'obsd')
+            ),
+            cli_executable_override=data.get(
+                'cliExecutableOverride',
+                data.get('cli_executable_override', '')
             ),
         )
 
@@ -112,6 +134,11 @@ class ConfigManager:
                 'obsidianCliCommand': data['obsidian_cli_command'],
                 'obsidianBridgeDir': data['obsidian_bridge_dir'],
                 'obsidianRenderCommandId': data['obsidian_render_command_id'],
+                'installMode': data['install_mode'],
+                'boundPythonExecutable': data['bound_python_executable'],
+                'boundVirtualEnvPath': data['bound_virtual_env_path'],
+                'isolatedEnvName': data['isolated_env_name'],
+                'cliExecutableOverride': data['cli_executable_override'],
             }
 
             # Encrypt sensitive fields
