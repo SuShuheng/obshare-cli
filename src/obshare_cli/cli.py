@@ -356,7 +356,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
                         "code": "CONFIG_INCOMPLETE",
                         "message": "Configuration not complete"
                     }
-                }))
+                }, ensure_ascii=False))
             else:
                 click.echo("[ERROR] Configuration not complete. Please run:")
                 click.echo("  obshare-cli config set-app-id <app_id>")
@@ -436,7 +436,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
                     "allowCreateCopy": allow_download
                 },
                 "uploadTime": upload_time
-            }, indent=2))
+            }, indent=2, ensure_ascii=False))
         else:
             click.echo("\n[OK] Upload successful!\n")
             click.echo(f"  Document: {title}")
@@ -456,7 +456,7 @@ def upload(ctx, file, public, allow_copy, allow_download):
                     "code": "UPLOAD_FAILED",
                     "message": str(e)
                 }
-            }))
+            }, ensure_ascii=False))
         else:
             click.echo(f"[ERROR] Upload failed: {e}")
         sys.exit(1)

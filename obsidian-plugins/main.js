@@ -11,6 +11,7 @@ const childProcess = require("child_process");
 const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
+const { TextDecoder } = require("util");
 
 const REPOSITORY_URL = "https://github.com/SuShuheng/obshare-cli";
 const MINICONDA_URL = "https://docs.conda.io/en/latest/miniconda.html";
@@ -652,6 +653,21 @@ function buildShareProgressStages() {
   ];
 }
 
+function quoteCommandArgForDisplay(value) {
+  const text = String(value == null ? "" : value);
+  if (!text) {
+    return '""';
+  }
+  if (!/[\s"]/u.test(text)) {
+    return text;
+  }
+  return `"${text.replace(/"/g, '\\"')}"`;
+}
+
+function formatCommandForDisplay(commandParts = []) {
+  return commandParts.map((part) => quoteCommandArgForDisplay(part)).join(" ");
+}
+
 function padShareLogPart(value) {
   return String(value).padStart(2, "0");
 }
@@ -683,6 +699,54 @@ function summarizeShareFailure(result = {}) {
     return String(result.stdout).trim();
   }
   return "Unknown upload error";
+}
+
+function normalizeProcessChunk(chunk) {
+  if (chunk == null) {
+    return Buffer.alloc(0);
+  }
+  if (Buffer.isBuffer(chunk)) {
+    return chunk;
+  }
+  return Buffer.from(String(chunk), "utf8");
+}
+
+function countReplacementCharacters(value) {
+  const matches = String(value || "").match(/\uFFFD/g);
+  return matches ? matches.length : 0;
+}
+
+function decodeBufferWithEncoding(buffer, encoding) {
+  if (!buffer || !buffer.length) {
+    return "";
+  }
+  if (encoding === "utf8") {
+    return buffer.toString("utf8");
+  }
+  return new TextDecoder(encoding).decode(buffer);
+}
+
+function decodeProcessOutput(chunks, platform = process.platform) {
+  const buffer = Buffer.concat((Array.isArray(chunks) ? chunks : [chunks]).map((chunk) => normalizeProcessChunk(chunk)));
+  if (!buffer.length) {
+    return "";
+  }
+
+  const utf8Text = decodeBufferWithEncoding(buffer, "utf8");
+  if (platform !== "win32" || !utf8Text.includes("\uFFFD")) {
+    return utf8Text;
+  }
+
+  try {
+    const gbkText = decodeBufferWithEncoding(buffer, "gbk");
+    if (countReplacementCharacters(gbkText) <= countReplacementCharacters(utf8Text)) {
+      return gbkText;
+    }
+  } catch (_) {
+    // Fall through to the UTF-8 decoding when GBK support is unavailable.
+  }
+
+  return utf8Text;
 }
 
 function buildShareExecutionLogText(record = {}) {
@@ -1965,7 +2029,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
     const record = {
       ok: Boolean(completed.ok && data && data.success && data.document && data.document.url),
-      command: command.join(" "),
+      command: formatCommandForDisplay(command),
       exitCode: completed.status || 0,
       stdout,
       stderr,
@@ -2367,7 +2431,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
         primaryValue: this.extractVersionLabel(result.output) || this.t("common.available"),
         secondaryText: this.formatSecondaryText({
           pathValue: this.describeCurrentBinding(status),
-          extraText: command.join(" "),
+          extraText: formatCommandForDisplay(command),
         }),
         path: command[0],
       };
@@ -2386,8 +2450,8 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
   async runCommandAsync(command, args, spawnOptions = {}) {
     return await new Promise((resolve) => {
-      let stdout = "";
-      let stderr = "";
+      const stdoutChunks = [];
+      const stderrChunks = [];
       let settled = false;
 
       const finish = (result) => {
@@ -2400,10 +2464,19 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
       let child = null;
       try {
+        const env = {
+          ...process.env,
+          ...(spawnOptions.env || {}),
+        };
+        if (process.platform === "win32") {
+          env.PYTHONUTF8 = env.PYTHONUTF8 || "1";
+          env.PYTHONIOENCODING = env.PYTHONIOENCODING || "utf-8";
+        }
         child = childProcess.spawn(command, args, {
-          shell: process.platform === "win32",
           windowsHide: true,
           ...spawnOptions,
+          shell: false,
+          env,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -2419,29 +2492,31 @@ module.exports = class ObShareCliPlugin extends Plugin {
 
       if (child.stdout) {
         child.stdout.on("data", (chunk) => {
-          stdout += String(chunk);
+          stdoutChunks.push(normalizeProcessChunk(chunk));
         });
       }
       if (child.stderr) {
         child.stderr.on("data", (chunk) => {
-          stderr += String(chunk);
+          stderrChunks.push(normalizeProcessChunk(chunk));
         });
       }
 
       child.on("error", (error) => {
+        const stdout = decodeProcessOutput(stdoutChunks).trim();
+        const stderr = decodeProcessOutput(stderrChunks).trim();
         const message = error instanceof Error ? error.message : String(error);
         finish({
           ok: false,
           status: 1,
-          stdout: stdout.trim(),
-          stderr: [stderr.trim(), message].filter(Boolean).join("\n"),
-          output: [stdout.trim(), stderr.trim(), message].filter(Boolean).join("\n").trim(),
+          stdout,
+          stderr: [stderr, message].filter(Boolean).join("\n"),
+          output: [stdout, stderr, message].filter(Boolean).join("\n").trim(),
         });
       });
 
       child.on("close", (code) => {
-        const trimmedStdout = stdout.trim();
-        const trimmedStderr = stderr.trim();
+        const trimmedStdout = decodeProcessOutput(stdoutChunks).trim();
+        const trimmedStderr = decodeProcessOutput(stderrChunks).trim();
         const output = [trimmedStdout, trimmedStderr].filter(Boolean).join("\n").trim();
         finish({
           ok: code === 0,
@@ -2709,7 +2784,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
       }
       return {
         ok: completed.ok,
-        command: command.join(" "),
+        command: formatCommandForDisplay(command),
         exitCode: completed.status || 0,
         stdout,
         stderr,
@@ -2726,7 +2801,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
         mode: "spinner",
         title: options.title || this.t("progress.command.title"),
         message: options.message || this.t("progress.command.message"),
-        commandLabel: command.join(" "),
+        commandLabel: formatCommandForDisplay(command),
       }),
       async () => execute()
     );

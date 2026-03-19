@@ -315,6 +315,41 @@ class TestUploadCli(unittest.TestCase):
         self.assertEqual(payload["error"]["code"], "UPLOAD_FAILED")
         self.assertIn("boom", payload["error"]["message"])
 
+    def test_upload_json_preserves_non_ascii_titles(self):
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            app_id="test_app_id",
+            app_secret="test_app_secret",
+            user_id="test_user_id",
+            folder_token="test_folder_token",
+        )
+
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            note_path = Path("开发计划.md")
+            note_path.write_text("# demo\n", encoding="utf-8")
+
+            mock_client = Mock()
+            mock_client.upload_document.return_value = UploadResult(
+                token="doxcnTest123",
+                url="https://feishu.cn/docx/doxcnTest123",
+                title="开发计划",
+            )
+
+            mock_now = Mock()
+            mock_now.strftime.return_value = "2024-01-01 12:00"
+
+            with patch("obshare_cli.cli.ConfigManager", return_value=config), patch(
+                "obshare_cli.cli.FeishuApiClient",
+                return_value=mock_client,
+            ), patch("obshare_cli.cli.datetime") as mock_datetime:
+                mock_datetime.now.return_value = mock_now
+                result = runner.invoke(cli, ["--json", "upload", str(note_path)])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('"title": "开发计划"', result.output)
+        self.assertNotIn("\\u5f00\\u53d1\\u8ba1\\u5212", result.output)
+
     def test_upload_passes_configured_mermaid_renderer_to_api_client(self):
         config = ConfigManager(tempfile.mkdtemp())
         config.update_config(
