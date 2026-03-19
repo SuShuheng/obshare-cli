@@ -2,8 +2,6 @@
 
 Upload Obsidian Markdown documents to Feishu cloud documents with a workflow built around `obshare-cli` and the bundled Obsidian companion plugin.
 
-`V0.2.0` makes the Obsidian companion plugin the primary direct-share UI: you can trigger sharing from the command palette, the file context menu, or the ribbon button, while `obshare-cli` continues to execute the upload itself.
-
 [![PyPI version](https://badge.fury.io/py/obshare-cli.svg)](https://badge.fury.io/py/obshare-cli)
 [![Python](https://img.shields.io/pypi/pyversions/obshare-cli.svg)](https://pypi.org/project/obshare-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
