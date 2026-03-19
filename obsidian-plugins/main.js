@@ -654,6 +654,18 @@ function buildShareCliArgs(filePath, options = {}) {
   return args;
 }
 
+function selectPathModuleForValue(filePath) {
+  return String(filePath || "").includes("\\") ? path.win32 : path;
+}
+
+function buildShareExecutionContext(sourceFilePath, options = {}) {
+  const pathModule = selectPathModuleForValue(sourceFilePath);
+  return {
+    workingDirectory: pathModule.dirname(sourceFilePath),
+    cliArgs: buildShareCliArgs(pathModule.basename(sourceFilePath), options),
+  };
+}
+
 function buildShareProgressStages() {
   return [
     { key: "validate", percent: 10 },
@@ -770,6 +782,7 @@ function buildShareExecutionLogText(record = {}) {
     `cli version: ${record.cliVersion || ""}`,
     `timestamp: ${record.timestamp || ""}`,
     `source file: ${record.sourceFilePath || ""}`,
+    `working directory: ${record.workingDirectory || ""}`,
     `command: ${record.command || ""}`,
     `exit code: ${record.exitCode == null ? "" : record.exitCode}`,
     `share options: public=${Boolean(options.isPublic)}, copy=${Boolean(options.allowCopy)}, download=${Boolean(
@@ -2029,7 +2042,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
     ].join("");
   }
 
-  parseShareCommandResult(command, completed, sourceFilePath, options) {
+  parseShareCommandResult(command, completed, sourceFilePath, options, executionContext = null) {
     const stdout = completed.stdout || "";
     const stderr = completed.stderr || "";
     let data = null;
@@ -2049,6 +2062,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
       stderr,
       data,
       sourceFilePath,
+      workingDirectory: executionContext && executionContext.workingDirectory ? executionContext.workingDirectory : "",
       options,
       timestamp: this.formatShareTimestamp(new Date()),
     };
@@ -2068,7 +2082,8 @@ module.exports = class ObShareCliPlugin extends Plugin {
       }),
       async ({ update }) => {
         const sourceFilePath = this.resolveShareSourcePath(file);
-        const command = this.buildCliCommand(buildShareCliArgs(sourceFilePath, options));
+        const executionContext = buildShareExecutionContext(sourceFilePath, options);
+        const command = this.buildCliCommand(executionContext.cliArgs);
 
         await update({
           message: this.shareProgressMessage("validate"),
@@ -2086,7 +2101,9 @@ module.exports = class ObShareCliPlugin extends Plugin {
           commandLabel: "",
         });
 
-        const completed = await this.runCommandAsync(command[0], command.slice(1));
+        const completed = await this.runCommandAsync(command[0], command.slice(1), {
+          cwd: executionContext.workingDirectory,
+        });
 
         await update({
           message: this.shareProgressMessage("finalize"),
@@ -2094,7 +2111,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
           commandLabel: "",
         });
 
-        const result = this.parseShareCommandResult(command, completed, sourceFilePath, options);
+        const result = this.parseShareCommandResult(command, completed, sourceFilePath, options, executionContext);
 
         await update({
           message: this.shareProgressMessage("done"),
