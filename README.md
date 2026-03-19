@@ -2,6 +2,8 @@
 
 Upload Obsidian Markdown documents to Feishu cloud documents with a workflow built around `obshare-cli` and the bundled Obsidian companion plugin.
 
+`V0.2.0` makes the Obsidian companion plugin the primary direct-share UI: you can trigger sharing from the command palette, the file context menu, or the ribbon button, while `obshare-cli` continues to execute the upload itself.
+
 [![PyPI version](https://badge.fury.io/py/obshare-cli.svg)](https://badge.fury.io/py/obshare-cli)
 [![Python](https://img.shields.io/pypi/pyversions/obshare-cli.svg)](https://pypi.org/project/obshare-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -17,7 +19,7 @@ Upload Obsidian Markdown documents to Feishu cloud documents with a workflow bui
 This repository now has three layers:
 
 - `obshare-cli`: upload Markdown, manage permissions, inspect history, and return JSON for automation
-- `obsidian-plugins/`: the required desktop companion plugin for runtime binding, shared config/history management, and Mermaid rendering
+- `obsidian-plugins/`: the required desktop companion plugin for direct note sharing, runtime binding, shared config/history management, and Mermaid rendering
 - Claude Code plugin skills: an agent-facing layer that drives the same CLI + Obsidian workflow
 
 If you want the supported experience, install the CLI and the Obsidian plugin together.
@@ -86,6 +88,24 @@ conda run -n obsd obshare-cli --json upload note.md
 
 If the note contains Mermaid blocks, `obshare-cli` writes a render request into the bridge directory, triggers `obsidian command id=obshare-cli:process-render-request`, waits for the plugin to return a PNG, and then uploads the final document to Feishu.
 
+### 6. Share directly from Obsidian
+
+After the Feishu config and bridge settings are in place, `V0.2.0` lets you share the current note from inside Obsidian itself.
+
+Available entry points:
+
+- Command palette: `Share Current Note To Feishu`
+- File context menu: `Share To Feishu`
+- Ribbon button: `Share To Feishu`
+
+Share behavior:
+
+- The plugin blocks the flow if the current note has unsaved changes.
+- Share permissions are confirmed before upload.
+- Upload progress is shown as staged progress in the plugin.
+- On success, the plugin shows the Feishu URL and can copy or open it.
+- On failure, the plugin shows a summary and can export a `.log` file to a selected folder.
+
 ## Command Quick Reference
 
 `--json` is a global flag. Put it before the subcommand, for example `obshare-cli --json upload note.md`.
@@ -132,10 +152,11 @@ Mermaid rendering is bridge-only in the current codebase:
 
 ## Obsidian Companion Plugin
 
-The bundled Obsidian plugin is the desktop companion shell for `obshare-cli`, not a separate uploader.
+The bundled Obsidian plugin is the desktop companion shell and primary direct-share UI for `obshare-cli`, not a second Feishu implementation.
 
 It provides:
 
+- direct note sharing to Feishu from inside Obsidian
 - `Environment Configuration`: detects `conda`, `obsd`, Python, pip, Obsidian CLI, and `obshare-cli`
 - `Upload Configuration`: edits the shared CLI config and runs connection tests
 - `Document Management`: reads upload history and dispatches permission/delete actions through the CLI

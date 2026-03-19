@@ -187,6 +187,36 @@ const MESSAGES = {
     "notice.permissionsUpdated": "已更新 {token} 的权限",
     "notice.permissionsFailed": "更新 {token} 的权限失败",
     "notice.languageChanged": "已切换插件语言。",
+    "share.commandName": "分享当前笔记至飞书",
+    "share.ribbonTitle": "分享至飞书",
+    "share.menuItem": "分享至飞书",
+    "share.invalidFile": "请先选择或打开一个 Markdown 文件。",
+    "share.unsaved.title": "请先保存当前笔记",
+    "share.unsaved.message": "当前笔记存在未保存修改。请先保存后再分享。",
+    "share.confirm.title": "分享至飞书",
+    "share.confirm.file": "文件",
+    "share.confirm.public.name": "公开分享",
+    "share.confirm.public.desc": "任何人可访问",
+    "share.confirm.copy.name": "允许复制",
+    "share.confirm.copy.desc": "允许复制文档内容",
+    "share.confirm.download.name": "允许下载",
+    "share.confirm.download.desc": "允许下载或另存副本",
+    "share.confirm.cancel": "取消",
+    "share.confirm.confirm": "确认分享",
+    "share.success.title": "分享成功",
+    "share.success.message": "文档已上传至飞书云文档。",
+    "share.success.link": "访问链接",
+    "share.success.copy": "复制链接",
+    "share.success.open": "在浏览器打开",
+    "share.success.close": "关闭",
+    "share.failure.title": "分享失败",
+    "share.failure.message": "上传未完成。你可以导出日志用于排查。",
+    "share.failure.summary": "错误摘要",
+    "share.failure.exportLog": "导出日志",
+    "share.log.exported": "已导出日志到 {path}",
+    "share.log.exportFailed": "导出日志失败: {error}",
+    "share.log.selectCanceled": "已取消日志导出。",
+    "share.log.pickerUnavailable": "当前运行环境无法打开文件夹选择器。",
     "about.pluginId": "插件 ID",
     "status.lastInstallSuccess": "命令已成功执行。",
     "upload.loaded": "已通过 CLI 原始导出接口加载共享配置。",
@@ -232,6 +262,12 @@ const MESSAGES = {
     "progress.docs.delete.message": "正在通过 CLI 删除当前文档...",
     "progress.docs.permission.title": "正在更新文档权限",
     "progress.docs.permission.message": "正在通过 CLI 更新文档权限...",
+    "progress.share.title": "正在分享至飞书",
+    "progress.share.validate": "正在校验笔记与分享选项...",
+    "progress.share.prepare": "正在准备 CLI 上传命令...",
+    "progress.share.upload": "正在上传文档到飞书...",
+    "progress.share.finalize": "正在解析上传结果...",
+    "progress.share.done": "上传流程已完成，正在打开结果窗口...",
   },
   en_us: {
     "shell.title": "obshare-cli",
@@ -397,6 +433,36 @@ const MESSAGES = {
     "notice.permissionsUpdated": "Updated permissions for {token}",
     "notice.permissionsFailed": "Failed to update permissions for {token}",
     "notice.languageChanged": "Plugin language changed.",
+    "share.commandName": "Share Current Note To Feishu",
+    "share.ribbonTitle": "Share To Feishu",
+    "share.menuItem": "Share To Feishu",
+    "share.invalidFile": "Open or select a Markdown file first.",
+    "share.unsaved.title": "Save the current note first",
+    "share.unsaved.message": "The current note has unsaved changes. Save it before sharing.",
+    "share.confirm.title": "Share To Feishu",
+    "share.confirm.file": "File",
+    "share.confirm.public.name": "Public Share",
+    "share.confirm.public.desc": "Anyone with the link can access the document",
+    "share.confirm.copy.name": "Allow Copy",
+    "share.confirm.copy.desc": "Allow document content to be copied",
+    "share.confirm.download.name": "Allow Download",
+    "share.confirm.download.desc": "Allow download or create-copy actions",
+    "share.confirm.cancel": "Cancel",
+    "share.confirm.confirm": "Share",
+    "share.success.title": "Share Successful",
+    "share.success.message": "The document has been uploaded to Feishu Docs.",
+    "share.success.link": "Open URL",
+    "share.success.copy": "Copy Link",
+    "share.success.open": "Open In Browser",
+    "share.success.close": "Close",
+    "share.failure.title": "Share Failed",
+    "share.failure.message": "The upload did not finish. Export a log if you need to investigate it.",
+    "share.failure.summary": "Error Summary",
+    "share.failure.exportLog": "Export Log",
+    "share.log.exported": "Exported log to {path}",
+    "share.log.exportFailed": "Failed to export log: {error}",
+    "share.log.selectCanceled": "Log export was canceled.",
+    "share.log.pickerUnavailable": "The current runtime could not open a folder picker.",
     "about.pluginId": "Plugin ID",
     "status.lastInstallSuccess": "Command completed successfully.",
     "upload.loaded": "Loaded shared configuration through the raw CLI export contract.",
@@ -442,6 +508,12 @@ const MESSAGES = {
     "progress.docs.delete.message": "Deleting the current document through the CLI...",
     "progress.docs.permission.title": "Updating Document Permissions",
     "progress.docs.permission.message": "Updating document permissions through the CLI...",
+    "progress.share.title": "Sharing To Feishu",
+    "progress.share.validate": "Validating the note and share options...",
+    "progress.share.prepare": "Preparing the CLI upload command...",
+    "progress.share.upload": "Uploading the document to Feishu...",
+    "progress.share.finalize": "Parsing the upload result...",
+    "progress.share.done": "Upload finished. Opening the result window...",
   },
 };
 
@@ -552,6 +624,89 @@ function shouldUseSpinnerForCliCommand(command) {
   );
 }
 
+function isShareableMarkdownFile(file) {
+  return Boolean(file && file.extension === "md");
+}
+
+function buildShareCliArgs(filePath, options = {}) {
+  const args = ["upload", filePath];
+  if (options.isPublic) {
+    args.push("--public");
+  }
+  if (options.allowCopy) {
+    args.push("--allow-copy");
+  }
+  if (options.allowDownload) {
+    args.push("--allow-download");
+  }
+  return args;
+}
+
+function buildShareProgressStages() {
+  return [
+    { key: "validate", percent: 10 },
+    { key: "prepare", percent: 25 },
+    { key: "upload", percent: 55 },
+    { key: "finalize", percent: 85 },
+    { key: "done", percent: 100 },
+  ];
+}
+
+function padShareLogPart(value) {
+  return String(value).padStart(2, "0");
+}
+
+function buildShareLogFileName(date = new Date()) {
+  return [
+    "obshare-upload-",
+    date.getUTCFullYear(),
+    "-",
+    padShareLogPart(date.getUTCMonth() + 1),
+    "-",
+    padShareLogPart(date.getUTCDate()),
+    "-",
+    padShareLogPart(date.getUTCHours()),
+    padShareLogPart(date.getUTCMinutes()),
+    padShareLogPart(date.getUTCSeconds()),
+    ".log",
+  ].join("");
+}
+
+function summarizeShareFailure(result = {}) {
+  if (result.data && result.data.error && result.data.error.message) {
+    return String(result.data.error.message);
+  }
+  if (result.stderr) {
+    return String(result.stderr).trim();
+  }
+  if (result.stdout) {
+    return String(result.stdout).trim();
+  }
+  return "Unknown upload error";
+}
+
+function buildShareExecutionLogText(record = {}) {
+  const options = record.options || {};
+  return [
+    `plugin version: ${record.pluginVersion || ""}`,
+    `cli version: ${record.cliVersion || ""}`,
+    `timestamp: ${record.timestamp || ""}`,
+    `source file: ${record.sourceFilePath || ""}`,
+    `command: ${record.command || ""}`,
+    `exit code: ${record.exitCode == null ? "" : record.exitCode}`,
+    `share options: public=${Boolean(options.isPublic)}, copy=${Boolean(options.allowCopy)}, download=${Boolean(
+      options.allowDownload
+    )}`,
+    `error summary: ${record.errorSummary || ""}`,
+    "",
+    "stdout:",
+    record.stdout || "",
+    "",
+    "stderr:",
+    record.stderr || "",
+  ].join("\n");
+}
+
 class ObShareProgressModal extends Modal {
   constructor(app, plugin, initialState) {
     super(app);
@@ -641,6 +796,214 @@ class ObShareProgressModal extends Modal {
     this.commandLabelValueEl.toggleClass("is-hidden", !hasCommandLabel);
     this.commandLabelTitleEl.setText(this.plugin.t("progress.command.label"));
     this.commandLabelValueEl.setText(this.state.commandLabel || "");
+  }
+}
+
+class ObShareInfoModal extends Modal {
+  constructor(app, plugin, { title, message }) {
+    super(app);
+    this.plugin = plugin;
+    this.titleText = title || "";
+    this.messageText = message || "";
+  }
+
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    modalEl.addClass("obshare-cli-share-modal");
+    contentEl.empty();
+    contentEl.addClass("obshare-cli-share-modal__content");
+
+    this.titleEl.setText(this.titleText);
+    contentEl.createEl("p", {
+      text: this.messageText,
+      cls: "obshare-cli-share-modal__message",
+    });
+
+    const actions = contentEl.createDiv({ cls: "obshare-cli-share-modal__actions" });
+    const closeButton = actions.createEl("button", { text: this.plugin.t("share.success.close") });
+    closeButton.addClass("mod-cta");
+    closeButton.addEventListener("click", () => this.close());
+  }
+
+  onClose() {
+    this.contentEl.empty();
+    this.modalEl.removeClass("obshare-cli-share-modal");
+  }
+}
+
+class ObShareConfirmModal extends Modal {
+  constructor(app, plugin, file) {
+    super(app);
+    this.plugin = plugin;
+    this.file = file;
+    this.result = null;
+    this.onResolve = null;
+  }
+
+  openAndWait() {
+    return new Promise((resolve) => {
+      this.onResolve = resolve;
+      this.open();
+    });
+  }
+
+  finish(result) {
+    this.result = result;
+    this.close();
+  }
+
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    modalEl.addClass("obshare-cli-share-modal");
+    contentEl.empty();
+    contentEl.addClass("obshare-cli-share-modal__content");
+
+    this.titleEl.setText(this.plugin.t("share.confirm.title"));
+    contentEl.createEl("div", {
+      text: `${this.plugin.t("share.confirm.file")}: ${this.file ? this.file.path : ""}`,
+      cls: "obshare-cli-share-modal__file",
+    });
+
+    const optionsContainer = contentEl.createDiv({ cls: "obshare-cli-share-options" });
+    const isPublicInput = this.renderCheckbox(
+      optionsContainer,
+      this.plugin.t("share.confirm.public.name"),
+      this.plugin.t("share.confirm.public.desc")
+    );
+    const allowCopyInput = this.renderCheckbox(
+      optionsContainer,
+      this.plugin.t("share.confirm.copy.name"),
+      this.plugin.t("share.confirm.copy.desc")
+    );
+    const allowDownloadInput = this.renderCheckbox(
+      optionsContainer,
+      this.plugin.t("share.confirm.download.name"),
+      this.plugin.t("share.confirm.download.desc")
+    );
+
+    const actions = contentEl.createDiv({ cls: "obshare-cli-share-modal__actions" });
+    actions
+      .createEl("button", { text: this.plugin.t("share.confirm.cancel") })
+      .addEventListener("click", () => this.finish(null));
+    const confirmButton = actions.createEl("button", { text: this.plugin.t("share.confirm.confirm") });
+    confirmButton.addClass("mod-cta");
+    confirmButton.addEventListener("click", () =>
+      this.finish({
+        isPublic: Boolean(isPublicInput.checked),
+        allowCopy: Boolean(allowCopyInput.checked),
+        allowDownload: Boolean(allowDownloadInput.checked),
+      })
+    );
+  }
+
+  renderCheckbox(container, title, description) {
+    const row = container.createDiv({ cls: "obshare-cli-share-option" });
+    const textWrap = row.createDiv({ cls: "obshare-cli-share-option__text" });
+    textWrap.createEl("div", {
+      text: title,
+      cls: "obshare-cli-share-option__title",
+    });
+    textWrap.createEl("div", {
+      text: description,
+      cls: "obshare-cli-share-option__desc",
+    });
+    const input = row.createEl("input", { type: "checkbox" });
+    input.addClass("obshare-cli-share-option__checkbox");
+    return input;
+  }
+
+  onClose() {
+    const resolve = this.onResolve;
+    this.contentEl.empty();
+    this.modalEl.removeClass("obshare-cli-share-modal");
+    this.onResolve = null;
+    if (resolve) {
+      resolve(this.result);
+    }
+  }
+}
+
+class ObShareResultModal extends Modal {
+  constructor(app, plugin, result) {
+    super(app);
+    this.plugin = plugin;
+    this.result = result;
+  }
+
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    modalEl.addClass("obshare-cli-share-modal");
+    contentEl.empty();
+    contentEl.addClass("obshare-cli-share-modal__content");
+
+    const isSuccess = Boolean(this.result && this.result.ok && this.result.data && this.result.data.document);
+    this.titleEl.setText(this.plugin.t(isSuccess ? "share.success.title" : "share.failure.title"));
+
+    if (isSuccess) {
+      this.renderSuccess(contentEl, this.result.data.document.url);
+      return;
+    }
+
+    this.renderFailure(contentEl);
+  }
+
+  renderSuccess(contentEl, url) {
+    contentEl.createEl("p", {
+      text: this.plugin.t("share.success.message"),
+      cls: "obshare-cli-share-modal__message",
+    });
+    contentEl.createEl("div", {
+      text: this.plugin.t("share.success.link"),
+      cls: "obshare-cli-share-modal__label",
+    });
+    const linkEl = contentEl.createEl("a", {
+      text: url,
+      href: url,
+      cls: "obshare-cli-share-modal__link",
+    });
+    linkEl.setAttr("target", "_blank");
+    linkEl.setAttr("rel", "noopener noreferrer");
+
+    const actions = contentEl.createDiv({ cls: "obshare-cli-share-modal__actions" });
+    actions.createEl("button", { text: this.plugin.t("share.success.copy") }).addEventListener("click", async () => {
+      await this.plugin.copyText(url);
+    });
+    actions.createEl("button", { text: this.plugin.t("share.success.open") }).addEventListener("click", () => {
+      window.open(url, "_blank");
+    });
+    const closeButton = actions.createEl("button", { text: this.plugin.t("share.success.close") });
+    closeButton.addClass("mod-cta");
+    closeButton.addEventListener("click", () => this.close());
+  }
+
+  renderFailure(contentEl) {
+    contentEl.createEl("p", {
+      text: this.plugin.t("share.failure.message"),
+      cls: "obshare-cli-share-modal__message",
+    });
+    contentEl.createEl("div", {
+      text: this.plugin.t("share.failure.summary"),
+      cls: "obshare-cli-share-modal__label",
+    });
+    contentEl.createEl("pre", {
+      text: this.result && this.result.errorSummary ? this.result.errorSummary : "",
+      cls: "obshare-cli-share-modal__summary",
+    });
+
+    const actions = contentEl.createDiv({ cls: "obshare-cli-share-modal__actions" });
+    actions
+      .createEl("button", { text: this.plugin.t("share.failure.exportLog") })
+      .addEventListener("click", async () => {
+        await this.plugin.exportShareFailureLog(this.result);
+      });
+    const closeButton = actions.createEl("button", { text: this.plugin.t("share.success.close") });
+    closeButton.addClass("mod-cta");
+    closeButton.addEventListener("click", () => this.close());
+  }
+
+  onClose() {
+    this.contentEl.empty();
+    this.modalEl.removeClass("obshare-cli-share-modal");
   }
 }
 
@@ -1257,6 +1620,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
     await this.saveSettings();
 
     this.addSettingTab(new ObSharePluginSettingTab(this.app, this));
+    this.registerShareEntryPoints();
 
     this.addCommand({
       id: "process-render-request",
@@ -1434,6 +1798,307 @@ module.exports = class ObShareCliPlugin extends Plugin {
       userId: "progress.upload.save.userId",
     };
     return this.t(mapping[key] || "progress.command.message");
+  }
+
+  shareProgressMessage(key) {
+    const mapping = {
+      validate: "progress.share.validate",
+      prepare: "progress.share.prepare",
+      upload: "progress.share.upload",
+      finalize: "progress.share.finalize",
+      done: "progress.share.done",
+    };
+    return this.t(mapping[key] || "progress.command.message");
+  }
+
+  registerShareEntryPoints() {
+    this.addCommand({
+      id: "share-to-feishu",
+      name: this.t("share.commandName"),
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile ? this.app.workspace.getActiveFile() : null;
+        const canShare = isShareableMarkdownFile(file);
+        if (checking) {
+          return canShare;
+        }
+        if (canShare) {
+          void this.startShareFlow(file);
+        }
+        return canShare;
+      },
+    });
+
+    this.addRibbonIcon("upload-cloud", this.t("share.ribbonTitle"), async () => {
+      const file = this.app.workspace.getActiveFile ? this.app.workspace.getActiveFile() : null;
+      await this.startShareFlow(file);
+    });
+
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file) => {
+        if (!isShareableMarkdownFile(file)) {
+          return;
+        }
+        menu.addItem((item) => {
+          item
+            .setTitle(this.t("share.menuItem"))
+            .setIcon("upload-cloud")
+            .onClick(() => {
+              void this.startShareFlow(file);
+            });
+        });
+      })
+    );
+  }
+
+  async startShareFlow(file) {
+    if (!isShareableMarkdownFile(file)) {
+      new Notice(this.t("share.invalidFile"));
+      return;
+    }
+
+    if (await this.hasUnsavedActiveNote()) {
+      new ObShareInfoModal(this.app, this, {
+        title: this.t("share.unsaved.title"),
+        message: this.t("share.unsaved.message"),
+      }).open();
+      return;
+    }
+
+    const options = await new ObShareConfirmModal(this.app, this, file).openAndWait();
+    if (!options) {
+      return;
+    }
+
+    let result = null;
+    try {
+      result = await this.executeShareUpload(file, options);
+    } catch (error) {
+      result = {
+        ok: false,
+        data: null,
+        timestamp: this.formatShareTimestamp(new Date()),
+        sourceFilePath: file.path,
+        command: "",
+        exitCode: 1,
+        stdout: "",
+        stderr: "",
+        options,
+        errorSummary: error instanceof Error ? error.message : String(error),
+      };
+    }
+
+    if (result.ok) {
+      try {
+        await this.refreshHistory();
+      } catch (_) {
+        // History refresh failure should not hide a successful upload result.
+      }
+    }
+
+    new ObShareResultModal(this.app, this, result).open();
+  }
+
+  async hasUnsavedActiveNote() {
+    const activeFile = this.app.workspace.getActiveFile ? this.app.workspace.getActiveFile() : null;
+    const activeEditor = this.app.workspace.activeEditor;
+    const editor = activeEditor && activeEditor.editor;
+    if (!isShareableMarkdownFile(activeFile) || !editor || typeof editor.getValue !== "function") {
+      return false;
+    }
+
+    try {
+      const savedContent = await this.app.vault.cachedRead(activeFile);
+      return editor.getValue() !== savedContent;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  resolveShareSourcePath(file) {
+    if (!file || !file.path) {
+      throw new Error(this.t("share.invalidFile"));
+    }
+
+    const adapter = this.app.vault && this.app.vault.adapter;
+    if (adapter && typeof adapter.getFullPath === "function") {
+      return adapter.getFullPath(file.path);
+    }
+    if (adapter && typeof adapter.getBasePath === "function") {
+      return path.join(adapter.getBasePath(), file.path);
+    }
+    if (adapter && typeof adapter.basePath === "string" && adapter.basePath) {
+      return path.join(adapter.basePath, file.path);
+    }
+    if (path.isAbsolute(file.path)) {
+      return file.path;
+    }
+    throw new Error("Vault adapter does not expose a filesystem base path.");
+  }
+
+  formatShareTimestamp(date = new Date()) {
+    return [
+      date.getFullYear(),
+      "-",
+      padShareLogPart(date.getMonth() + 1),
+      "-",
+      padShareLogPart(date.getDate()),
+      " ",
+      padShareLogPart(date.getHours()),
+      ":",
+      padShareLogPart(date.getMinutes()),
+      ":",
+      padShareLogPart(date.getSeconds()),
+    ].join("");
+  }
+
+  parseShareCommandResult(command, completed, sourceFilePath, options) {
+    const stdout = completed.stdout || "";
+    const stderr = completed.stderr || "";
+    let data = null;
+    if (stdout) {
+      try {
+        data = JSON.parse(stdout);
+      } catch (_) {
+        data = null;
+      }
+    }
+
+    const record = {
+      ok: Boolean(completed.ok && data && data.success && data.document && data.document.url),
+      command: command.join(" "),
+      exitCode: completed.status || 0,
+      stdout,
+      stderr,
+      data,
+      sourceFilePath,
+      options,
+      timestamp: this.formatShareTimestamp(new Date()),
+    };
+    record.errorSummary = record.ok ? "" : summarizeShareFailure(record);
+    return record;
+  }
+
+  async executeShareUpload(file, options) {
+    const stages = buildShareProgressStages();
+    const firstStage = stages[0];
+    return await this.withProgressDialog(
+      createProgressState({
+        mode: "progress",
+        title: this.t("progress.share.title"),
+        message: this.shareProgressMessage(firstStage.key),
+        percent: 0,
+      }),
+      async ({ update }) => {
+        const sourceFilePath = this.resolveShareSourcePath(file);
+        const command = this.buildCliCommand(buildShareCliArgs(sourceFilePath, options));
+
+        await update({
+          message: this.shareProgressMessage("validate"),
+          percent: stages[0].percent,
+          commandLabel: "",
+        });
+        await update({
+          message: this.shareProgressMessage("prepare"),
+          percent: stages[1].percent,
+          commandLabel: "",
+        });
+        await update({
+          message: this.shareProgressMessage("upload"),
+          percent: stages[2].percent,
+          commandLabel: "",
+        });
+
+        const completed = await this.runCommandAsync(command[0], command.slice(1));
+
+        await update({
+          message: this.shareProgressMessage("finalize"),
+          percent: stages[3].percent,
+          commandLabel: "",
+        });
+
+        const result = this.parseShareCommandResult(command, completed, sourceFilePath, options);
+
+        await update({
+          message: this.shareProgressMessage("done"),
+          percent: stages[4].percent,
+          commandLabel: "",
+        });
+
+        return result;
+      }
+    );
+  }
+
+  getShareLogDialog() {
+    const loaders = [
+      () => {
+        const electron = require("electron");
+        return (electron && (electron.dialog || (electron.remote && electron.remote.dialog))) || null;
+      },
+      () => {
+        const remote = require("@electron/remote");
+        return (remote && remote.dialog) || null;
+      },
+    ];
+
+    for (const load of loaders) {
+      try {
+        const dialog = load();
+        if (dialog && typeof dialog.showOpenDialog === "function") {
+          return dialog;
+        }
+      } catch (_) {
+        // Try the next desktop dialog integration.
+      }
+    }
+
+    return null;
+  }
+
+  async pickDirectoryForShareLog() {
+    const dialog = this.getShareLogDialog();
+    if (!dialog) {
+      throw new Error(this.t("share.log.pickerUnavailable"));
+    }
+
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (result.canceled || !Array.isArray(result.filePaths) || !result.filePaths[0]) {
+      return "";
+    }
+    return result.filePaths[0];
+  }
+
+  async exportShareFailureLog(result) {
+    try {
+      const directory = await this.pickDirectoryForShareLog();
+      if (!directory) {
+        new Notice(this.t("share.log.selectCanceled"));
+        return;
+      }
+
+      const fileName = buildShareLogFileName(new Date());
+      const targetPath = path.join(directory, fileName);
+      const logText = buildShareExecutionLogText({
+        ...result,
+        pluginVersion: this.manifest && this.manifest.version ? this.manifest.version : "",
+        cliVersion:
+          (this.settings.lastEnvironmentStatus &&
+            this.settings.lastEnvironmentStatus.obshareCli &&
+            this.settings.lastEnvironmentStatus.obshareCli.primaryValue) ||
+          "",
+      });
+
+      await fs.writeFile(targetPath, logText, "utf8");
+      new Notice(this.t("share.log.exported", { path: targetPath }));
+    } catch (error) {
+      new Notice(
+        this.t("share.log.exportFailed", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
   }
 
   async collectEnvironmentStatus(updateProgress = null) {

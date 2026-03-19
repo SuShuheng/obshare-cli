@@ -194,10 +194,99 @@ class TestConfigEncryption(unittest.TestCase):
         self.assertEqual(loaded_config.folder_token, "test_folder_token")
 
 
+class TestVersioning(unittest.TestCase):
+    """Test release version metadata."""
+
+    def test_package_version_is_v020(self):
+        from obshare_cli import __version__
+
+        self.assertEqual(__version__, "0.2.0")
+
+
 class TestUploadCli(unittest.TestCase):
     """Test upload command behavior."""
 
-    def test_upload_returns_structured_json_error(self):
+    def test_upload_json_success_matches_plugin_contract(self):
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            app_id="test_app_id",
+            app_secret="test_app_secret",
+            user_id="test_user_id",
+            folder_token="test_folder_token",
+        )
+
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            note_path = Path("demo.md")
+            note_path.write_text("# demo\n", encoding="utf-8")
+
+            mock_client = Mock()
+            mock_client.upload_document.return_value = UploadResult(
+                token="doxcnTest123",
+                url="https://feishu.cn/docx/doxcnTest123",
+                title="demo",
+            )
+
+            mock_now = Mock()
+            mock_now.strftime.return_value = "2024-01-01 12:00"
+
+            with patch("obshare_cli.cli.ConfigManager", return_value=config), patch(
+                "obshare_cli.cli.FeishuApiClient",
+                return_value=mock_client,
+            ), patch("obshare_cli.cli.datetime") as mock_datetime:
+                mock_datetime.now.return_value = mock_now
+                result = runner.invoke(
+                    cli,
+                    [
+                        "--json",
+                        "upload",
+                        str(note_path),
+                        "--public",
+                        "--allow-copy",
+                    ],
+                )
+
+        self.assertEqual(result.exit_code, 0)
+        payload = json.loads(result.output)
+        self.assertEqual(
+            payload,
+            {
+                "success": True,
+                "document": {
+                    "title": "demo",
+                    "token": "doxcnTest123",
+                    "url": "https://feishu.cn/docx/doxcnTest123",
+                },
+                "permissions": {
+                    "isPublic": True,
+                    "allowCopy": True,
+                    "allowCreateCopy": False,
+                },
+                "uploadTime": "2024-01-01 12:00",
+            },
+        )
+
+    def test_upload_json_config_incomplete_has_code_and_message(self):
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            note_path = Path("demo.md")
+            note_path.write_text("# demo\n", encoding="utf-8")
+
+            with patch("obshare_cli.cli.ConfigManager") as mock_config_manager:
+                incomplete_config = Mock()
+                incomplete_config.is_complete.return_value = False
+                mock_config_manager.return_value.load_config.return_value = incomplete_config
+
+                result = runner.invoke(cli, ["--json", "upload", str(note_path)])
+
+        self.assertEqual(result.exit_code, 1)
+        payload = json.loads(result.output)
+        self.assertFalse(payload["success"])
+        self.assertEqual(payload["error"]["code"], "CONFIG_INCOMPLETE")
+        self.assertIn("Configuration not complete", payload["error"]["message"])
+
+    def test_upload_json_runtime_failure_has_code_and_message(self):
         config = ConfigManager(tempfile.mkdtemp())
         config.update_config(
             app_id="test_app_id",

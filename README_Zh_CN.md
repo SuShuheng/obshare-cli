@@ -2,6 +2,8 @@
 
 一个将 Obsidian Markdown 文档上传到飞书云文档的工作流，推荐形态是 `obshare-cli` 命令行与仓库自带的 Obsidian 配套插件联合使用。
 
+`V0.2.0` 开始，Obsidian 配套插件成为主分享界面：你可以直接从命令面板、文件右键菜单或 Ribbon 按钮触发分享，而 `obshare-cli` 仍然负责真正的上传执行。
+
 [![PyPI version](https://badge.fury.io/py/obshare-cli.svg)](https://badge.fury.io/py/obshare-cli)
 [![Python](https://img.shields.io/pypi/pyversions/obshare-cli.svg)](https://pypi.org/project/obshare-cli/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -17,7 +19,7 @@
 当前仓库可以理解成 3 层能力：
 
 - `obshare-cli`：负责上传 Markdown、管理权限、查询历史，以及输出 JSON 结果
-- `obsidian-plugins/`：必装的桌面配套插件，负责运行时绑定、共享配置/历史，以及 Mermaid 渲染
+- `obsidian-plugins/`：必装的桌面配套插件，负责笔记直连分享、运行时绑定、共享配置/历史，以及 Mermaid 渲染
 - Claude Code plugin skills：给 Claude Code 提供可调用技能，把同一条 Obsidian 发布链路智能体化
 
 如果你希望按项目当前受支持的方式使用，请把 CLI 和 Obsidian 插件一起安装。
@@ -86,6 +88,24 @@ conda run -n obsd obshare-cli --json upload note.md
 
 如果笔记里包含 Mermaid 代码块，`obshare-cli` 会把渲染请求写入 bridge 目录，调用 `obsidian command id=obshare-cli:process-render-request`，等待插件返回 PNG，再继续把最终文档上传到飞书。
 
+### 6. 直接在 Obsidian 中分享
+
+当飞书配置和 bridge 设置完成后，`V0.2.0` 支持直接在 Obsidian 内分享当前笔记。
+
+可用入口：
+
+- 命令面板：`Share Current Note To Feishu`
+- 文件右键菜单：`Share To Feishu`
+- Ribbon 按钮：`Share To Feishu`
+
+分享行为：
+
+- 如果当前笔记有未保存修改，插件会先阻断流程并提示你保存。
+- 上传前会先确认分享权限。
+- 上传过程中会显示阶段性进度条。
+- 成功后会展示飞书链接，并支持复制或浏览器打开。
+- 失败后会展示错误摘要，并支持把 `.log` 日志导出到你选择的文件夹。
+
 ## 命令速查
 
 `--json` 是全局参数，必须放在子命令前面，例如 `obshare-cli --json upload note.md`。
@@ -132,10 +152,11 @@ CLI 与 Obsidian 插件共享同一套本地状态：
 
 ## Obsidian 配套插件
 
-仓库中的 Obsidian 插件是 `obshare-cli` 的桌面配套外壳，不是另一套独立上传器。
+仓库中的 Obsidian 插件是 `obshare-cli` 的桌面配套外壳，也是主直连分享界面，不是另一套独立的飞书实现。
 
 它提供：
 
+- 直接从 Obsidian 分享当前笔记到飞书
 - `Environment Configuration`：探测 `conda`、`obsd`、Python、pip、Obsidian CLI 与 `obshare-cli`
 - `Upload Configuration`：直接编辑共享 CLI 配置并执行连接测试
 - `Document Management`：读取上传历史，并通过 CLI 分发删除/权限更新

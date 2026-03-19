@@ -1,7 +1,7 @@
 {
   "name": "obshare-cli",
-  "version": "0.1.8",
-  "description": "Upload Obsidian Markdown documents to Feishu (Lark) cloud documents. Skills for environment setup, configuration, uploading notes, managing permissions, and viewing upload history.",
+  "version": "0.2.0",
+  "description": "Upload Obsidian Markdown documents to Feishu (Lark) cloud documents. Skills for environment setup, configuration, direct-share plugin workflows, uploading notes, managing permissions, and viewing upload history.",
   "author": {
     "name": "SuShuHeng",
     "email": "code.sushuheng@gmail.com"

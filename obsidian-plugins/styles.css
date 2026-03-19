@@ -111,6 +111,105 @@
   color: var(--text-muted);
 }
 
+.obshare-cli-share-modal .modal {
+  max-width: 620px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(90, 160, 120, 0.15), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 246, 0.98));
+  box-shadow: 0 24px 70px rgba(20, 35, 25, 0.16);
+}
+
+.obshare-cli-share-modal .modal-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.obshare-cli-share-modal__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.obshare-cli-share-modal__file {
+  border-radius: 12px;
+  background: rgba(40, 70, 55, 0.06);
+  padding: 0.9rem 1rem;
+  word-break: break-word;
+  font-family: var(--font-monospace);
+  font-size: 0.92rem;
+}
+
+.obshare-cli-share-modal__message {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.obshare-cli-share-modal__label {
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.obshare-cli-share-modal__link {
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.obshare-cli-share-modal__summary {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 14px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  padding: 0.95rem 1rem;
+  font-family: var(--font-monospace);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.obshare-cli-share-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+
+.obshare-cli-share-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.obshare-cli-share-option {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.8rem;
+  align-items: center;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+}
+
+.obshare-cli-share-option__title {
+  font-weight: 600;
+}
+
+.obshare-cli-share-option__desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+  line-height: 1.45;
+}
+
+.obshare-cli-share-option__checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .obshare-cli-progress-modal .modal {
   max-width: 640px;
   border-radius: 24px;

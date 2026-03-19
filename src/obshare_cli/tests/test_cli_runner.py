@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import runpy
 from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import patch
@@ -19,6 +20,13 @@ def test_runner_builds_system_python_command():
     command = runner.build_command(["config", "test"])
 
     assert command == ["python3", "-m", "obshare_cli", "--json", "config", "test"]
+
+
+def test_package_supports_python_module_execution():
+    with patch("obshare_cli.cli.main") as mock_main:
+        runpy.run_module("obshare_cli", run_name="__main__")
+
+    mock_main.assert_called_once_with()
 
 
 def test_runner_builds_isolated_obsd_command(tmp_path):

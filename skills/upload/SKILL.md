@@ -1,6 +1,6 @@
 ---
 name: upload
-description: Use when uploading a Markdown note to Feishu, optionally applying public or copy/download permissions, or requesting JSON upload results for automation.
+description: Use when uploading a Markdown note to Feishu, optionally applying public or copy/download permissions, or requesting JSON upload results for automation or the Obsidian plugin direct-share flow.
 ---
 
 # obshare-cli upload
@@ -40,3 +40,4 @@ Successful output includes:
 - Upload history is saved to `~/.obshare/history.json`.
 - `--json` is a global flag and must appear before `upload`.
 - If you rely on Mermaid rendering through the companion plugin, configure the optional Obsidian bridge settings first.
+- In `V0.2.0`, the Obsidian companion plugin calls this command as the backend for direct note sharing.

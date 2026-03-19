@@ -1,11 +1,11 @@
 ---
 name: config
-description: Use when configuring obshare-cli credentials, checking saved settings, testing connectivity, clearing local config, or setting optional Obsidian bridge values.
+description: Use when configuring obshare-cli credentials, checking saved settings, testing connectivity, clearing local config, or setting optional Obsidian bridge values used by the V0.2.0 direct-share stack.
 ---
 
 # obshare-cli config
 
-Manage saved configuration for Feishu uploads and optional Obsidian bridge integration.
+Manage saved configuration for Feishu uploads and optional Obsidian bridge integration. These settings are consumed by both the CLI and the Obsidian companion plugin's direct-share flow in `V0.2.0`.
 
 ## Quick Reference
 

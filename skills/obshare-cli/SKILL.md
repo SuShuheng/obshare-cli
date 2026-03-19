@@ -1,11 +1,11 @@
 ---
 name: obshare-cli
-description: Use when setting up obshare-cli 0.1.7, reviewing available commands, or choosing the right command for config, upload, permission, history, or delete tasks.
+description: Use when setting up obshare-cli 0.2.0, reviewing available commands, or choosing the right command for config, upload, permission, history, delete, and the plugin-first direct-share workflow.
 ---
 
 # obshare-cli
 
-`obshare-cli` uploads Markdown documents to Feishu and keeps local upload history. The recommended runtime for this plugin is the `obsd` conda environment.
+`obshare-cli` uploads Markdown documents to Feishu and keeps local upload history. In `V0.2.0`, the Obsidian companion plugin is the primary direct-share UI, while the CLI remains the execution backend. The recommended runtime for this stack is the `obsd` conda environment.
 
 ## Setup
 

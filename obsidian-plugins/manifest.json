@@ -1,9 +1,9 @@
 {
   "id": "obshare-cli",
   "name": "obshare-cli",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "minAppVersion": "1.6.0",
-  "description": "Obsidian companion plugin for obshare-cli environment setup, document management, and Mermaid rendering.",
+  "description": "Obsidian companion plugin for obshare-cli direct sharing, environment setup, document management, and Mermaid rendering.",
   "author": "SuShuHeng",
   "isDesktopOnly": true
 }

@@ -2,7 +2,7 @@
 
 This is the Obsidian desktop companion plugin for `obshare-cli`.
 
-Its first internal runtime capability is Mermaid rendering inside a real Obsidian environment, but the plugin identity is broader: it is the desktop companion shell for `obshare-cli`.
+In `V0.2.0`, the plugin becomes the primary direct-share UI for `obshare-cli`: share the current note to Feishu from inside Obsidian, while the CLI remains the execution backend. Mermaid rendering inside a real Obsidian environment is still part of the plugin's runtime responsibilities.
 
 Repository: `https://github.com/SuShuheng/obshare-cli`
 
@@ -21,6 +21,24 @@ The plugin shell is organized into four tabs:
 - `Upload Configuration`
 - `Document Management`
 - `About`
+
+## Direct Share Entry Points
+
+The plugin now exposes three direct-share entry points for Markdown notes:
+
+- command palette: `Share Current Note To Feishu`
+- file context menu: `Share To Feishu`
+- ribbon button: `Share To Feishu`
+
+The direct-share flow is:
+
+1. validate the target note
+2. block if the current note has unsaved changes
+3. confirm share permissions
+4. run `obshare-cli --json upload ...`
+5. show staged progress
+6. show either the success URL or a failure summary
+7. allow failure log export to a user-selected folder
 
 The first implemented functional tab is `Environment Configuration`, which detects:
 
@@ -63,6 +81,14 @@ It also persists:
 - opens recorded document URLs
 - dispatches delete and permission updates through CLI JSON commands
 
+`Direct Share`
+- resolves the selected Markdown note to a filesystem path
+- calls `obshare-cli --json upload ...`
+- applies share permissions selected in the confirmation dialog
+- shows a staged progress dialog during upload
+- shows a success dialog with the Feishu URL
+- shows a failure dialog with `.log` export
+
 `About`
 - shows plugin version
 - shows detected CLI version
@@ -76,7 +102,7 @@ It also persists:
 
 - `obshare-cli:process-render-request`
 
-This command is the one `obshare-cli` should trigger through the official Obsidian CLI:
+This command is the one `obshare-cli` should trigger through the official Obsidian CLI for Mermaid bridge rendering:
 
 ```bash
 obsidian command id=obshare-cli:process-render-request
