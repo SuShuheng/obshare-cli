@@ -37,9 +37,18 @@ conda run -n obsd obshare-cli --version
 
 1. Copy [`obsidian-plugins/`](./obsidian-plugins/) into your vault plugin directory as `.obsidian/plugins/obshare-cli/`.
 2. Enable `obshare-cli` in Obsidian.
-3. Open the plugin settings.
-4. In `Environment Configuration`, choose the `conda (obsd)` runtime.
-5. Set a shared bridge directory that both Obsidian and `obshare-cli` can access.
+3. Update Obsidian to the latest installer build before testing the CLI bridge.
+4. Open `Settings -> About -> Advanced` and enable `Command line interface`.
+5. Click `Register` so the `obsidian` command is available from your terminal.
+6. Open the plugin settings.
+7. In `Environment Configuration`, choose the `conda (obsd)` runtime.
+8. Set a shared bridge directory that both Obsidian and `obshare-cli` can access.
+
+Use these screens as the reference path:
+
+![Obsidian About Advanced CLI](./assets/obsidian-cli-%E5%85%B3%E4%BA%8E-%E9%AB%98%E7%BA%A7-%E5%91%BD%E4%BB%A4%E8%A1%8C%E7%95%8C%E9%9D%A2.png)
+
+![Obsidian CLI PATH Registration](./assets/obsidian-cli-%E6%B3%A8%E5%86%8C%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F.png)
 
 Detailed plugin shell notes live in [`obsidian-plugins/README.md`](./obsidian-plugins/README.md).
 

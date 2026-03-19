@@ -37,9 +37,18 @@ conda run -n obsd obshare-cli --version
 
 1. 将 [`obsidian-plugins/`](./obsidian-plugins/) 复制到你的 Vault 插件目录，目标路径为 `.obsidian/plugins/obshare-cli/`
 2. 在 Obsidian 中启用 `obshare-cli`
-3. 打开插件设置
-4. 在 `Environment Configuration` 中选择 `conda (obsd)` 运行时
-5. 设置一个 Obsidian 与 `obshare-cli` 都能访问到的共享 bridge 目录
+3. 在测试 CLI bridge 之前，先将 Obsidian 更新到最新安装器版本
+4. 进入 `设置 -> 关于 -> 高级`，开启 `命令行界面`
+5. 点击 `注册`，将 `obsidian` 命令注册到 PATH，确保终端里可以直接调用
+6. 打开插件设置
+7. 在 `Environment Configuration` 中选择 `conda (obsd)` 运行时
+8. 设置一个 Obsidian 与 `obshare-cli` 都能访问到的共享 bridge 目录
+
+可参考下面两张界面截图：
+
+![Obsidian 关于 高级 命令行界面](./assets/obsidian-cli-%E5%85%B3%E4%BA%8E-%E9%AB%98%E7%BA%A7-%E5%91%BD%E4%BB%A4%E8%A1%8C%E7%95%8C%E9%9D%A2.png)
+
+![Obsidian CLI 注册环境变量](./assets/obsidian-cli-%E6%B3%A8%E5%86%8C%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F.png)
 
 插件界面的更多说明见 [`obsidian-plugins/README.md`](./obsidian-plugins/README.md)。
 

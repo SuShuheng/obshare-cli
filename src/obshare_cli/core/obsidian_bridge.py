@@ -39,6 +39,37 @@ class ObsidianMermaidBridge:
         self.poll_interval = poll_interval
         self.timeout = timeout
 
+    def _run_cli_command(self, *args: str) -> subprocess.CompletedProcess[str]:
+        """Run an Obsidian CLI command with consistent subprocess options."""
+        return subprocess.run(
+            [*self.cli_command, *args],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def _ensure_command_available(self) -> None:
+        """Fail fast when the target Obsidian command is not visible to the CLI."""
+        command_prefix = self.command_id.split(":", 1)[0]
+        completed = self._run_cli_command("commands", f"filter={command_prefix}")
+        if completed.returncode != 0:
+            stderr = completed.stderr.strip() or completed.stdout.strip()
+            raise RuntimeError(
+                stderr or "Failed to query Obsidian CLI commands"
+            )
+
+        available_commands = {
+            line.strip()
+            for line in completed.stdout.splitlines()
+            if line.strip()
+        }
+        if self.command_id not in available_commands:
+            raise RuntimeError(
+                "Obsidian render command is not available: "
+                f"{self.command_id}. Verify the plugin is enabled and run "
+                f"`{' '.join([*self.cli_command, 'commands', f'filter={command_prefix}'])}`."
+            )
+
     def render_mermaid(
         self,
         mermaid_content: str,
@@ -46,6 +77,7 @@ class ObsidianMermaidBridge:
         output_name: Optional[str] = None,
     ) -> MermaidBridgeResult:
         """Write a render request, invoke Obsidian CLI, and wait for a result."""
+        self._ensure_command_available()
         self.bridge_dir.mkdir(parents=True, exist_ok=True)
 
         request_id = uuid.uuid4().hex
@@ -70,12 +102,7 @@ class ObsidianMermaidBridge:
             encoding="utf-8",
         )
 
-        completed = subprocess.run(
-            [*self.cli_command, "command", f"id={self.command_id}"],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        completed = self._run_cli_command("command", f"id={self.command_id}")
         if completed.returncode != 0:
             stderr = completed.stderr.strip() or completed.stdout.strip()
             raise RuntimeError(stderr or "Failed to invoke Obsidian CLI render command")
