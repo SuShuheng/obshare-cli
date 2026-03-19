@@ -92,7 +92,7 @@ const MESSAGES = {
     "env.timeout.desc": "等待 Mermaid SVG 渲染完成的最长时间。",
     "env.installGuidance": "安装指引",
     "env.installGuidance.conda":
-      "推荐使用 conda 创建固定名称为 obsd 的环境，并优先通过 conda run -n obsd 调用 obshare-cli。",
+      "推荐使用 conda 创建固定名称为 obsd 的环境，并优先通过 conda run -n obsd 调用 obshare-cli；升级时先卸载旧版，再重新安装升级版。",
     "env.installGuidance.venv":
       "venv 仅作为兼容方案。插件会使用固定名称为 obsd 的虚拟环境目录并通过环境内 Python 调用 obshare-cli。",
     "env.installGuidance.system":
@@ -298,7 +298,7 @@ const MESSAGES = {
     "env.timeout.desc": "Maximum time to wait for Mermaid SVG rendering.",
     "env.installGuidance": "Installation Guidance",
     "env.installGuidance.conda":
-      "Preferred path: create the fixed conda environment named obsd, then call obshare-cli through conda run -n obsd.",
+      "Preferred path: create the fixed conda environment named obsd, then call obshare-cli through conda run -n obsd; upgrades should uninstall the existing package before reinstalling the upgraded version.",
     "env.installGuidance.venv":
       "venv is a compatibility path. The plugin uses the fixed virtual environment named obsd and calls obshare-cli through the env-local Python.",
     "env.installGuidance.system":
@@ -1222,7 +1222,6 @@ class ObSharePluginSettingTab extends PluginSettingTab {
     this.renderStatusCard(statusGrid, this.plugin.t("status.python"), status.python);
     this.renderStatusCard(statusGrid, this.plugin.t("status.pip"), status.pip);
     this.renderStatusCard(statusGrid, this.plugin.t("status.obsidianCli"), status.obsidianCli);
-    this.renderStatusCard(statusGrid, this.plugin.t("status.obshareCli"), status.obshareCli);
   }
 
   renderStatusCard(container, title, status) {
@@ -1821,7 +1820,7 @@ module.exports = class ObShareCliPlugin extends Plugin {
     const python = this.resolveSystemPythonCommand();
     if (this.settings.runtimeType === "conda") {
       const conda = this.resolveCondaExecutable();
-      return `${conda} create -n obsd python -y && ${conda} run -n obsd python -m pip install --upgrade pip && ${conda} run -n obsd python -m pip install --upgrade obshare-cli`;
+      return `${conda} create -n obsd python -y && ${conda} run -n obsd python -m pip install --upgrade pip && ${conda} run -n obsd pip uninstall obshare-cli -y && ${conda} run -n obsd pip install obshare-cli --upgrade`;
     }
     if (this.settings.runtimeType === "venv") {
       const envPath = this.settings.boundVirtualEnvPath || this.defaultIsolatedEnvPath();
@@ -1838,6 +1837,11 @@ module.exports = class ObShareCliPlugin extends Plugin {
   }
 
   generateUpgradeCommand() {
+    if (this.settings.runtimeType === "conda") {
+      const conda = this.resolveCondaExecutable();
+      return `${conda} run -n obsd pip uninstall obshare-cli -y && ${conda} run -n obsd pip install obshare-cli --upgrade`;
+    }
+
     return this.generateInstallCommand();
   }
 
