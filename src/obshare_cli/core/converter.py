@@ -189,6 +189,7 @@ class MarkdownConverter:
                     "type": "obsidian",
                     "path": match.group(1),
                     "position": offset + match.start(),
+                    "end": offset + match.end(),
                 }
             )
 
@@ -200,6 +201,7 @@ class MarkdownConverter:
                     "path": match.group(2),
                     "title": match.group(3),
                     "position": offset + match.start(),
+                    "end": offset + match.end(),
                 }
             )
 

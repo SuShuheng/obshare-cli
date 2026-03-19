@@ -329,6 +329,11 @@ def _kind_for_path(path: Path) -> str:
     return "local_image"
 
 
+def _placeholder_markdown_for_path(path: Path) -> str:
+    """Build a standard Markdown image placeholder for a local media file."""
+    return f"![{path.name}]({path.name})"
+
+
 def prepare_markdown_for_upload(content: str, source_path: Path, mermaid_renderer) -> PreparedMarkdown:
     """Prepare Markdown content and collect media items for later backfill."""
     source_path = Path(source_path)
@@ -362,8 +367,14 @@ def prepare_markdown_for_upload(content: str, source_path: Path, mermaid_rendere
 
     for segment in MarkdownConverter.iter_segments(content):
         if segment.kind == "text":
-            processed_parts.append(segment.text)
-            for image_info in MarkdownConverter.extract_images(segment.text):
+            text_images = MarkdownConverter.extract_images(segment.text)
+            if not text_images:
+                processed_parts.append(segment.text)
+                continue
+
+            rewritten_text_parts: list[str] = []
+            cursor = 0
+            for image_info in text_images:
                 resolved_path = _resolve_local_path(image_info["path"], source_path)
                 media_items.append(
                     PreparedMediaItem(
@@ -373,6 +384,18 @@ def prepare_markdown_for_upload(content: str, source_path: Path, mermaid_rendere
                         source_path=resolved_path,
                     )
                 )
+                start = image_info["position"]
+                end = image_info["end"]
+                rewritten_text_parts.append(segment.text[cursor:start])
+                if image_info["type"] == "obsidian":
+                    rewritten_text_parts.append(
+                        _placeholder_markdown_for_path(resolved_path)
+                    )
+                else:
+                    rewritten_text_parts.append(segment.text[start:end])
+                cursor = end
+            rewritten_text_parts.append(segment.text[cursor:])
+            processed_parts.append("".join(rewritten_text_parts))
             continue
 
         if segment.kind == "mermaid":

@@ -64,6 +64,44 @@ flowchart TD
     assert "![mermaid-flowchart-0.png](mermaid-flowchart-0.png)" in result.processed_content
 
 
+def test_prepare_markdown_rewrites_obsidian_wikilink_images_to_standard_markdown(tmp_path):
+    source = tmp_path / "notes" / "demo.md"
+    source.parent.mkdir(parents=True)
+    (source.parent / "photo.png").write_bytes(b"png")
+    (source.parent / "clip.gif").write_bytes(b"gif")
+
+    result = prepare_markdown_for_upload(
+        "![[photo.png]]\n![[clip.gif|200]]",
+        source,
+        StubMermaidRenderer(),
+    )
+
+    assert "![[photo.png]]" not in result.processed_content
+    assert "![[clip.gif|200]]" not in result.processed_content
+    assert "![photo.png](photo.png)" in result.processed_content
+    assert "![clip.gif](clip.gif)" in result.processed_content
+
+
+def test_prepare_markdown_keeps_processed_image_count_in_sync_with_media_items(tmp_path):
+    source = tmp_path / "notes" / "demo.md"
+    source.parent.mkdir(parents=True)
+    (source.parent / "photo.png").write_bytes(b"png")
+
+    content = """
+![Config](photo.png)
+![[photo.png]]
+```mermaid
+flowchart TD
+    A --> B
+```
+"""
+
+    result = prepare_markdown_for_upload(content, source, StubMermaidRenderer())
+
+    assert len(result.media_items) == 3
+    assert result.processed_content.count("](") == len(result.media_items)
+
+
 def test_prepare_markdown_resolves_local_paths_relative_to_source(tmp_path):
     source = tmp_path / "vault" / "docs" / "demo.md"
     source.parent.mkdir(parents=True)
