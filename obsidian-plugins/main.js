@@ -629,8 +629,19 @@ function isShareableMarkdownFile(file) {
   return Boolean(file && file.extension === "md");
 }
 
+function quoteCliFilePath(filePath) {
+  const text = String(filePath == null ? "" : filePath);
+  if (!text) {
+    return '""';
+  }
+  if (text.startsWith('"') && text.endsWith('"')) {
+    return text;
+  }
+  return `"${text}"`;
+}
+
 function buildShareCliArgs(filePath, options = {}) {
-  const args = ["upload", filePath];
+  const args = ["upload", quoteCliFilePath(filePath)];
   if (options.isPublic) {
     args.push("--public");
   }
@@ -657,6 +668,9 @@ function quoteCommandArgForDisplay(value) {
   const text = String(value == null ? "" : value);
   if (!text) {
     return '""';
+  }
+  if (text.startsWith('"') && text.endsWith('"')) {
+    return text;
   }
   if (!/[\s"]/u.test(text)) {
     return text;

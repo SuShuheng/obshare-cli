@@ -197,10 +197,12 @@ class TestConfigEncryption(unittest.TestCase):
 class TestVersioning(unittest.TestCase):
     """Test release version metadata."""
 
-    def test_package_version_is_v020(self):
+    def test_package_version_matches_pyproject(self):
         from obshare_cli import __version__
+        import tomllib
 
-        self.assertEqual(__version__, "0.2.0")
+        pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+        self.assertEqual(__version__, pyproject["project"]["version"])
 
 
 class TestUploadCli(unittest.TestCase):
@@ -349,6 +351,37 @@ class TestUploadCli(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn('"title": "开发计划"', result.output)
         self.assertNotIn("\\u5f00\\u53d1\\u8ba1\\u5212", result.output)
+
+    def test_upload_json_accepts_a_quoted_file_argument(self):
+        config = ConfigManager(tempfile.mkdtemp())
+        config.update_config(
+            app_id="test_app_id",
+            app_secret="test_app_secret",
+            user_id="test_user_id",
+            folder_token="test_folder_token",
+        )
+
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            note_path = Path("开发 计划.md")
+            note_path.write_text("# demo\n", encoding="utf-8")
+
+            mock_client = Mock()
+            mock_client.upload_document.return_value = UploadResult(
+                token="doxcnQuoted123",
+                url="https://feishu.cn/docx/doxcnQuoted123",
+                title="开发 计划",
+            )
+
+            with patch("obshare_cli.cli.ConfigManager", return_value=config), patch(
+                "obshare_cli.cli.FeishuApiClient",
+                return_value=mock_client,
+            ):
+                result = runner.invoke(cli, ["--json", "upload", f'"{note_path}"'])
+
+        self.assertEqual(result.exit_code, 0)
+        payload = json.loads(result.output)
+        self.assertEqual(payload["document"]["title"], "开发 计划")
 
     def test_upload_passes_configured_mermaid_renderer_to_api_client(self):
         config = ConfigManager(tempfile.mkdtemp())

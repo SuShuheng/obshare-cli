@@ -55,6 +55,14 @@ def _build_mermaid_renderer(config: ObShareConfig) -> MermaidRenderer:
     return MermaidRenderer()
 
 
+def _normalize_cli_file_argument(value: str) -> str:
+    """Accept plugin-provided quoted file arguments and return the bare path."""
+    text = str(value or "").strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in {'"', "'"}:
+        return text[1:-1]
+    return text
+
+
 # Config commands group
 @cli.group()
 @click.pass_context
@@ -337,7 +345,7 @@ def clear_config(ctx):
 
 # Upload command
 @cli.command()
-@click.argument('file', type=click.Path(exists=True))
+@click.argument('file')
 @click.option('--public', is_flag=True, help='Make document public')
 @click.option('--allow-copy', is_flag=True, help='Allow copying content')
 @click.option('--allow-download', is_flag=True, help='Allow download and create copy')
@@ -366,7 +374,10 @@ def upload(ctx, file, public, allow_copy, allow_download):
             sys.exit(1)
 
         # Read file content
-        file_path = Path(file)
+        normalized_file = _normalize_cli_file_argument(file)
+        file_path = Path(normalized_file)
+        if not normalized_file or not file_path.exists():
+            raise FileNotFoundError(f"Path '{normalized_file}' does not exist")
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
